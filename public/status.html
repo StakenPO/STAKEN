@@ -318,8 +318,7 @@ img,svg{display:block;max-width:100%}
   var timer,editing=false,last={};
   var ERR={
     bad_uid:"Введите ID из цифр, без букв и пробелов (от 4 до 15 цифр).",
-    uid_mismatch:"Эта регистрация прошла с другим ID. Проверьте номер аккаунта, который вы создали по нашей ссылке.",
-    uid_taken:"Этот ID уже привязан к другой сессии. Напишите менеджеру в Telegram.",
+        uid_taken:"Этот ID уже привязан к другой сессии. Напишите менеджеру в Telegram.",
     too_many:"Слишком много попыток. Напишите менеджеру в Telegram.",
     server:"Не удалось отправить ID. Проверьте интернет и попробуйте ещё раз."
   };
@@ -334,7 +333,7 @@ img,svg{display:block;max-width:100%}
     if(confirmed){set(2,"done","ID "+d.uid+" подтверждён.");if(!editing)showForm(false)}
     else if(st==="uid_wait"){set(2,"now","ID "+d.uid+" сохранён. Ждём, когда Pocket Option сообщит о регистрации.");if(!editing)showForm(false)}
     else if(st==="taken"){set(2,"bad","ID "+d.uid+" уже привязан к другой сессии. Напишите менеджеру.");showForm(true)}
-    else if(st==="mismatch"){set(2,"bad","Регистрация в этой сессии прошла с другим ID. Введите верный ID.");showForm(true)}
+    else if(st==="mismatch"){set(2,"now","ID "+d.uid+" пока не найден среди регистраций по вашей ссылке. Если аккаунт создан только что, подождите пару минут и нажмите «Проверить сейчас». Если вы ошиблись, введите ID заново. Подойдёт любой аккаунт, созданный по нашей ссылке.");showForm(true)}
     else{set(2,d.reg?"now":"","Введите ID аккаунта (цифры рядом с аватаркой в Pocket Option).");showForm(true)}
     // шаг 3
     if(d.ftd&&d.dep>=min)set(3,"done","Депозит $"+d.dep.toFixed(2)+" подтверждён.");

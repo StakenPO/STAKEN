@@ -153,6 +153,11 @@ img,svg{display:block;max-width:100%}
 .price li{display:flex;gap:11px}.price li svg{flex:none;width:19px;height:19px;color:var(--g);margin-top:3px}
 .price .btn{width:100%}
 .prices.two{grid-template-columns:repeat(2,1fr);max-width:880px;margin:0 auto}
+.price .was{display:flex;align-items:center;gap:10px;margin-top:16px}
+.price .was s{font:600 22px var(--body);color:var(--mut);text-decoration:line-through;text-decoration-color:#FF6B6B;text-decoration-thickness:2px}
+.price .was .off{font:800 12px var(--body);letter-spacing:.06em;color:#241A04;background:var(--gold);padding:4px 9px;border-radius:99px}
+.price .was+.big{margin-top:6px}
+.badge.sale{background:linear-gradient(90deg,#FF8A5B,var(--gold))}
 .price .how{font-size:13.5px;color:var(--mut);margin-top:14px;text-align:center}
 @media(max-width:760px){.prices.two{grid-template-columns:1fr}.price.hot{transform:none}}
 .price.hot{border-color:var(--g);background:linear-gradient(180deg,rgba(34,197,139,.12),var(--surf) 55%);box-shadow:0 30px 70px -30px rgba(34,197,139,.5);transform:translateY(-10px)}
@@ -292,7 +297,7 @@ img,svg{display:block;max-width:100%}
     <div class="ticks">
       <span><svg><use href="#i-check"/></svg>5 минут бесплатно</span>
       <span><svg><use href="#i-check"/></svg>Chrome и Edge</span>
-      <span><svg><use href="#i-check"/></svg>от $15 в неделю</span>
+      <span><svg><use href="#i-check"/></svg>навсегда за $67</span>
     </div>
   </div>
 
@@ -341,7 +346,7 @@ img,svg{display:block;max-width:100%}
   <h2 class="d">Три шага до первой сессии</h2>
   <p class="sub">Никаких сложных настроек. Установили, выбрали риск, торгуете по подсказкам панели.</p>
   <div class="steps" style="text-align:left">
-    <div class="step rv"><div class="n">01</div><h3>Установите и получите ключ</h3><p>Поставьте расширение в Chrome или Edge. Первые 5 минут бесплатны. Полный доступ: бесплатно после регистрации и депозита на Pocket Option или навсегда за $149.</p></div>
+    <div class="step rv"><div class="n">01</div><h3>Установите и получите ключ</h3><p>Поставьте расширение в Chrome или Edge. Первые 5 минут бесплатны. Полный доступ: бесплатно после регистрации и депозита на Pocket Option или навсегда за $67.</p></div>
     <div class="step rv"><div class="n">02</div><h3>Выберите пресет</h3><p>Панель покажет шанс провала каждого пресета. Вы выбираете уровень риска осознанно, а не наугад.</p></div>
     <div class="step rv"><div class="n">03</div><h3>Следуйте плану</h3><p>STAKEN считает сумму ставки, фиксирует WIN, LOSS или TIE и сообщает «Стоп», когда цель достигнута.</p></div>
   </div>
@@ -397,13 +402,13 @@ img,svg{display:block;max-width:100%}
 <section class="sec" id="pricing"><div class="w center">
   <span class="tag">Тарифы</span>
   <h2 class="d">Два способа получить доступ</h2>
-  <p class="sub">Выберите, как получить ключ: бесплатно через регистрацию и депозит на Pocket Option или навсегда за $149. Функции в обоих вариантах одинаковые.</p>
+  <p class="sub">Выберите, как получить ключ: бесплатно через регистрацию и депозит на Pocket Option или навсегда за $67. Функции в обоих вариантах одинаковые.</p>
   <div class="prices two" style="text-align:left">
     <div class="price hot rv"><span class="badge">БЕСПЛАТНО ДЛЯ КЛИЕНТОВ POCKET OPTION</span><span class="nm">ЧЕРЕЗ РЕГИСТРАЦИЮ</span><div class="big">0<sup>$</sup></div><div class="per">Ключ после депозита от $100</div>
       <ul><li><svg><use href="#i-check"/></svg>Регистрация на Pocket Option по нашей ссылке</li><li><svg><use href="#i-check"/></svg>Ввод ID вашего аккаунта</li><li><svg><use href="#i-check"/></svg>Пополнение счёта от $100</li><li><svg><use href="#i-check"/></svg>Ключ выдаётся автоматически, все возможности STAKEN</li></ul>
       <a class="btn go" id="reg-link" href="status.html" data-flow="register">Зарегистрироваться и получить ключ</a>
       <div class="how">Регистрация и депозит проверяются автоматически, ключ появится на странице доступа</div></div>
-    <div class="price rv"><span class="nm">НАВСЕГДА</span><div class="big">149<sup>$</sup></div><div class="per">Один платёж, без продлений</div>
+    <div class="price rv"><span class="badge sale">СКИДКА −55%</span><span class="nm">НАВСЕГДА</span><div class="was"><s>$150</s><span class="off">−$83</span></div><div class="big">67<sup>$</sup></div><div class="per">Один платёж, без продлений. Цена по акции</div>
       <ul><li><svg><use href="#i-check"/></svg>Бессрочная лицензия</li><li><svg><use href="#i-check"/></svg>Все будущие обновления</li><li><svg><use href="#i-check"/></svg>Не нужна регистрация и депозит</li><li><svg><use href="#i-check"/></svg>Поддержка в Telegram</li></ul>
       <a class="btn gh" href="https://t.me/staken_manager" data-flow="buy">Купить навсегда</a>
       <div class="how">Оплата и выдача ключа через Telegram</div></div>
@@ -419,7 +424,7 @@ img,svg{display:block;max-width:100%}
     <details><summary>STAKEN гарантирует прибыль?</summary><p>Нет. Это инструмент управления ставками. Он не прогнозирует рынок, не является финансовой рекомендацией и не гарантирует результат. Все сделки совершаете вы.</p></details>
     <details><summary>В каких браузерах работает?</summary><p>В Chrome и Edge. Интерфейс доступен на русском и английском языках.</p></details>
     <details><summary>Можно попробовать до оплаты?</summary><p>Да. После установки даётся 5 минут бесплатно, а тестовый режим позволяет прогнать план без риска.</p></details>
-    <details><summary>Как получить ключ?</summary><p>Есть два способа. Бесплатно: нажмите «Зарегистрироваться и получить ключ», создайте аккаунт Pocket Option по нашей ссылке, введите его ID и пополните счёт от $100, ключ появится на странице доступа. Или купите бессрочную лицензию за $149 у менеджера в Telegram @staken_manager.</p></details>
+    <details><summary>Как получить ключ?</summary><p>Есть два способа. Бесплатно: нажмите «Зарегистрироваться и получить ключ», создайте аккаунт Pocket Option по нашей ссылке, введите его ID и пополните счёт от $100, ключ появится на странице доступа. Или купите бессрочную лицензию за $67 у менеджера в Telegram @staken_manager.</p></details>
     <details><summary>Чем отличаются способы получения ключа?</summary><p>Только способом получения. Функции везде одинаковые. Лицензия «Навсегда» — бессрочная, с будущими обновлениями.</p></details>
     <details><summary>Что если выплата актива изменится во время сессии?</summary><p>Панель пересчитает оставшиеся ставки, чтобы план оставался корректным.</p></details>
   </div>
@@ -428,8 +433,8 @@ img,svg{display:block;max-width:100%}
 <!-- FINAL -->
 <section class="final"><div class="box">
   <h2 class="d">Начните сессию с планом, а не с надеждой</h2>
-  <p>Установите STAKEN, получите 5 минут бесплатно и убедитесь сами. Ключ и помощь с установкой ждут в Telegram.</p>
-  <a class="btn go lg" href="#pricing">Получить ключ</a>
+  <p>Установите STAKEN, получите 5 минут бесплатно и убедитесь сами. Расширение и инструкция по установке уже ждут вас.</p>
+  <a class="btn go lg" id="try-free" href="https://drive.google.com/ВСТАВЬТЕ_ССЫЛКУ_НА_GOOGLE_DRIVE" target="_blank" rel="noopener">Попробовать STAKEN бесплатно</a>
 </div></section>
 </main>
 

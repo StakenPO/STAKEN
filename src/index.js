@@ -4,8 +4,11 @@
 // Схема работы:
 //   1. Сайт создаёт click_id и открывает регистрацию Pocket Option со ссылкой, где есть этот click_id.
 //   2. Pocket Option шлёт постбэки reg / ftd на /pb (с click_id, trader_id, sumdep).
-//   3. Клиент на странице статуса вводит ID своего аккаунта (/api/bind). ID сверяется с trader_id из постбэка.
-//   4. Когда ID подтверждён и депозит >= MIN_DEPOSIT, из пула выдаётся ключ.
+//      Каждый аккаунт (trader_id) хранится в таблице regs и закрепляется за первым click_id, с которым пришёл.
+//      Под одним click_id может быть несколько аккаунтов (клиент создал, забыл, создал новый).
+//   3. Клиент на странице статуса вводит ID своего аккаунта (/api/bind). ID должен быть среди аккаунтов,
+//      зарегистрированных именно с его click_id. Чужой аккаунт взять нельзя.
+//   4. Когда ID подтверждён и депозит этого аккаунта >= MIN_DEPOSIT, из пула выдаётся ключ (один ключ на click_id).
 
 const HEX32 = /^[a-f0-9]{32}$/;
 const UID_RE = /^\d{4,15}$/;
@@ -31,9 +34,12 @@ const now = () => Math.floor(Date.now() / 1000);
 const getRow = (env, id) => env.DB.prepare("SELECT * FROM clicks WHERE click_id=?1").bind(id).first();
 
 // ---------- Схема БД (создаётся и обновляется автоматически) ----------
+// clicks: одна строка на click_id (ключ, введённый клиентом ID, число попыток).
+// regs:   одна строка на аккаунт Pocket Option (trader_id), с click_id, с которым он пришёл (может быть NULL).
 function ensureSchema(env) {
   if (!schemaReady) {
     schemaReady = (async () => {
+      const hadRegs = await env.DB.prepare("SELECT 1 AS x FROM sqlite_master WHERE type='table' AND name='regs'").first();
       await env.DB.batch([
         env.DB.prepare(`CREATE TABLE IF NOT EXISTS clicks(
           click_id TEXT PRIMARY KEY, created_at INTEGER, reg_at INTEGER, ftd_at INTEGER,
@@ -42,13 +48,26 @@ function ensureSchema(env) {
           key TEXT PRIMARY KEY, added_at INTEGER, claimed_by TEXT, claimed_at INTEGER, note TEXT)`),
         env.DB.prepare(`CREATE TABLE IF NOT EXISTS events(
           ts INTEGER, event TEXT, click_id TEXT, trader_id TEXT, dep REAL, result TEXT)`),
-        env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_clicks_trader ON clicks(trader_id)`),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS regs(
+          trader_id TEXT PRIMARY KEY, click_id TEXT, reg_at INTEGER, ftd_at INTEGER, dep REAL DEFAULT 0)`),
+        env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_regs_click ON regs(click_id)`),
       ]);
       // Если таблица clicks создана старой версией Worker, добавляем новые столбцы
       const info = await env.DB.prepare("PRAGMA table_info(clicks)").all();
       const have = new Set((info.results || []).map((r) => r.name));
       if (!have.has("uid")) await env.DB.prepare("ALTER TABLE clicks ADD COLUMN uid TEXT").run();
       if (!have.has("bind_n")) await env.DB.prepare("ALTER TABLE clicks ADD COLUMN bind_n INTEGER DEFAULT 0").run();
+      // Один раз переносим аккаунты из старой схемы (trader_id/dep лежали прямо в clicks)
+      if (!hadRegs) {
+        await env.DB.batch([
+          env.DB.prepare(
+            `INSERT OR IGNORE INTO regs(trader_id,click_id,reg_at,ftd_at,dep)
+             SELECT trader_id, CASE WHEN click_id LIKE 't:%' THEN NULL ELSE click_id END, reg_at, ftd_at, COALESCE(dep,0)
+             FROM clicks WHERE trader_id IS NOT NULL AND trader_id!=''`
+          ),
+          env.DB.prepare("DELETE FROM clicks WHERE click_id LIKE 't:%'"),
+        ]);
+      }
     })().catch((e) => { schemaReady = null; throw e; });
   }
   return schemaReady;
@@ -68,52 +87,38 @@ async function claimKey(env, claimedBy, note) {
 const releaseKey = (env, key) =>
   env.DB.prepare("UPDATE keys SET claimed_by=NULL, claimed_at=NULL, note=NULL WHERE key=?1").bind(key).run();
 
-// ---------- Постбэки без click_id ----------
-// Если Pocket Option прислал постбэк без click_id, храним его под псевдо-ключом "t:<trader_id>".
-// Когда клиент вводит ID (или приходит постбэк с click_id), данные переносятся в его строку.
-async function absorbPseudo(env, targetId, trader) {
-  if (!trader || targetId.startsWith("t:")) return;
-  const p = await getRow(env, "t:" + trader);
-  if (!p) return;
-  const t = await getRow(env, targetId);
-  if (!t || (t.trader_id && t.trader_id !== trader)) return;
-  await env.DB.batch([
-    env.DB.prepare(
-      `UPDATE clicks SET trader_id=?2, reg_at=COALESCE(reg_at,?3), ftd_at=COALESCE(ftd_at,?4),
-       dep=MAX(COALESCE(dep,0),?5) WHERE click_id=?1`
-    ).bind(targetId, trader, p.reg_at ?? null, p.ftd_at ?? null, p.dep || 0),
-    env.DB.prepare("DELETE FROM clicks WHERE click_id=?1").bind(p.click_id),
-  ]);
-}
-
 // ---------- Главная логика: состояние и выдача ключа ----------
-// Состояния: none, need_uid, uid_wait, uid_ok, low, mismatch, taken, dup, empty, key
+// Состояния: none, need_uid, uid_wait, mismatch, uid_ok, low, taken, dup, empty, key
+//   uid_wait: по этому click_id ещё не было ни одной регистрации, ждём постбэк
+//   mismatch: регистрации по click_id есть, но введённого ID среди них нет (опечатка или постбэк ещё не пришёл)
+//   taken:    аккаунт уже закреплён за другим click_id
 async function tryIssue(env, clickId) {
   const min = minDeposit(env);
-  let me = await getRow(env, clickId);
+  const me = await getRow(env, clickId);
   if (!me) return { key: null, state: "none", uid: null, dep: 0, reg: false, ftd: false };
-  if (me.uid && !me.trader_id) {
-    await absorbPseudo(env, clickId, me.uid);
-    me = await getRow(env, clickId);
+
+  const cnt = await env.DB.prepare("SELECT COUNT(*) AS n FROM regs WHERE click_id=?1").bind(clickId).first();
+  const base = { uid: me.uid || null, dep: 0, reg: !!(cnt && cnt.n > 0), ftd: false };
+
+  let acct = me.uid ? await env.DB.prepare("SELECT * FROM regs WHERE trader_id=?1").bind(me.uid).first() : null;
+  if (acct && !acct.click_id) {
+    // Постбэк пришёл без click_id: закрепляем аккаунт за тем, кто ввёл этот ID первым
+    await env.DB.prepare("UPDATE regs SET click_id=?1 WHERE trader_id=?2 AND click_id IS NULL").bind(clickId, me.uid).run();
+    acct = await env.DB.prepare("SELECT * FROM regs WHERE trader_id=?1").bind(me.uid).first();
   }
-  const base = { uid: me.uid || null, dep: me.dep || 0, reg: !!me.reg_at, ftd: !!me.ftd_at };
+  const mine = acct && acct.click_id === clickId ? acct : null;
+  if (mine) { base.reg = true; base.dep = mine.dep || 0; base.ftd = !!mine.ftd_at; }
 
   if (me.key) return { ...base, key: me.key, state: "key" };
   if (!me.uid) return { ...base, key: null, state: "need_uid" };
-  if (me.trader_id && me.trader_id !== me.uid) return { ...base, key: null, state: "mismatch" };
+  if (!acct) return { ...base, key: null, state: base.reg ? "mismatch" : "uid_wait" };
+  if (!mine) return { ...base, key: null, state: "taken" };
 
-  if (!me.trader_id) {
-    // Постбэк с этим ID ещё не пришёл. Если ID уже закреплён за другой сессией, отказываем.
-    const other = await env.DB.prepare("SELECT 1 AS x FROM clicks WHERE trader_id=?1 AND click_id!=?2 LIMIT 1")
-      .bind(me.uid, clickId).first();
-    return { ...base, key: null, state: other ? "taken" : "uid_wait" };
-  }
-
-  if ((me.dep || 0) < min) return { ...base, key: null, state: me.ftd_at ? "low" : "uid_ok" };
+  if (base.dep < min) return { ...base, key: null, state: base.ftd ? "low" : "uid_ok" };
 
   const dup = await env.DB.prepare(
-    "SELECT 1 AS x FROM clicks WHERE trader_id=?1 AND key IS NOT NULL AND click_id!=?2 LIMIT 1"
-  ).bind(me.trader_id, clickId).first();
+    "SELECT 1 AS x FROM clicks WHERE uid=?1 AND key IS NOT NULL AND click_id!=?2 LIMIT 1"
+  ).bind(me.uid, clickId).first();
   if (dup) return { ...base, key: null, state: "dup" };
 
   const prev = await env.DB.prepare("SELECT key FROM keys WHERE claimed_by=?1 LIMIT 1").bind(clickId).first();
@@ -148,39 +153,31 @@ async function handlePostback(url, env) {
   let result;
   const isReg = EVENTS_REG.includes(ev);
   const isFtd = EVENTS_FTD.includes(ev);
-  let target = null;
-  if (HEX32.test(clickId)) target = clickId;
-  else if (trader) {
-    // click_id не пришёл: ищем строку по trader_id или заводим временную
-    const ex = await env.DB.prepare(
-      "SELECT click_id FROM clicks WHERE trader_id=?1 ORDER BY (key IS NOT NULL) DESC, COALESCE(ftd_at,reg_at,created_at) DESC LIMIT 1"
-    ).bind(trader).first();
-    target = ex ? ex.click_id : "t:" + trader;
-  }
+  const target = HEX32.test(clickId) ? clickId : null;
 
   if (!isReg && !isFtd) result = "unknown_event";
-  else if (!target) result = "no_click_id_no_trader";
+  else if (!trader) result = "no_trader";
   else {
-    const row = await getRow(env, target);
-    if (row && row.trader_id && trader && row.trader_id !== trader) {
-      result = "trader_mismatch"; // тот же click_id, но другой аккаунт: игнорируем
-    } else if (isReg) {
-      await env.DB.prepare(
-        `INSERT INTO clicks(click_id,created_at,reg_at,trader_id) VALUES(?1,?2,?2,NULLIF(?3,''))
-         ON CONFLICT(click_id) DO UPDATE SET reg_at=COALESCE(reg_at,?2),
-         trader_id=COALESCE(NULLIF(trader_id,''),NULLIF(?3,''))`
-      ).bind(target, t, trader).run();
-      await absorbPseudo(env, target, trader);
-      result = "reg_saved" + (target.startsWith("t:") ? ":no_click_id" : "");
+    const row = await env.DB.prepare("SELECT * FROM regs WHERE trader_id=?1").bind(trader).first();
+    if (row && row.click_id && target && row.click_id !== target) {
+      result = "trader_mismatch"; // аккаунт уже закреплён за другим click_id: игнорируем
     } else {
-      await env.DB.prepare(
-        `INSERT INTO clicks(click_id,created_at,reg_at,ftd_at,trader_id,dep) VALUES(?1,?2,?2,?2,NULLIF(?3,''),?4)
-         ON CONFLICT(click_id) DO UPDATE SET reg_at=COALESCE(reg_at,?2), ftd_at=COALESCE(ftd_at,?2),
-         dep=MAX(COALESCE(dep,0),?4), trader_id=COALESCE(NULLIF(trader_id,''),NULLIF(?3,''))`
-      ).bind(target, t, trader, dep).run();
-      await absorbPseudo(env, target, trader);
-      if (target.startsWith("t:")) result = "ftd_saved:no_click_id";
-      else result = "ftd_saved:" + (await tryIssue(env, target)).state;
+      const cid = (row && row.click_id) || target; // может быть null, если Pocket Option не прислал click_id
+      if (cid) await env.DB.prepare("INSERT OR IGNORE INTO clicks(click_id,created_at) VALUES(?1,?2)").bind(cid, t).run();
+      if (isReg) {
+        await env.DB.prepare(
+          `INSERT INTO regs(trader_id,click_id,reg_at) VALUES(?1,?2,?3)
+           ON CONFLICT(trader_id) DO UPDATE SET click_id=COALESCE(click_id,?2), reg_at=COALESCE(reg_at,?3)`
+        ).bind(trader, cid, t).run();
+        result = "reg_saved" + (cid ? "" : ":no_click_id");
+      } else {
+        await env.DB.prepare(
+          `INSERT INTO regs(trader_id,click_id,reg_at,ftd_at,dep) VALUES(?1,?2,?3,?3,?4)
+           ON CONFLICT(trader_id) DO UPDATE SET click_id=COALESCE(click_id,?2), reg_at=COALESCE(reg_at,?3),
+           ftd_at=COALESCE(ftd_at,?3), dep=MAX(COALESCE(dep,0),?4)`
+        ).bind(trader, cid, t, dep).run();
+        result = cid ? "ftd_saved:" + (await tryIssue(env, cid)).state : "ftd_saved:no_click_id";
+      }
     }
   }
 
@@ -200,6 +197,8 @@ async function handleStatus(url, env) {
 }
 
 // ---------- Клиент вводит ID своего аккаунта ----------
+// Вводить можно любой аккаунт, зарегистрированный с этим click_id, и менять ID до выдачи ключа.
+// Нельзя взять аккаунт, закреплённый за другим click_id.
 async function handleBind(req, env) {
   if (req.method !== "POST") return json({ ok: false, error: "method" }, 405);
   const body = await req.json().catch(() => ({}));
@@ -212,13 +211,8 @@ async function handleBind(req, env) {
   const me = await getRow(env, c);
   if (me.key) return json({ ok: true, ...publicView(await tryIssue(env, c), minDeposit(env)) });
   if ((me.bind_n || 0) >= 15) return json({ ok: false, error: "too_many" }, 429);
-  if (me.trader_id && me.trader_id !== uid) return json({ ok: false, error: "uid_mismatch" }, 409);
-  if (!me.trader_id) {
-    const other = await env.DB.prepare(
-      "SELECT 1 AS x FROM clicks WHERE trader_id=?1 AND click_id!=?2 AND click_id NOT LIKE 't:%' LIMIT 1"
-    ).bind(uid, c).first();
-    if (other) return json({ ok: false, error: "uid_taken" }, 409);
-  }
+  const acct = await env.DB.prepare("SELECT click_id FROM regs WHERE trader_id=?1").bind(uid).first();
+  if (acct && acct.click_id && acct.click_id !== c) return json({ ok: false, error: "uid_taken" }, 409);
   await env.DB.prepare("UPDATE clicks SET uid=?1, bind_n=COALESCE(bind_n,0)+1 WHERE click_id=?2").bind(uid, c).run();
   return json({ ok: true, ...publicView(await tryIssue(env, c), minDeposit(env)) });
 }
@@ -234,12 +228,21 @@ async function handleAdmin(req, url, env) {
     const stats = await env.DB.prepare(
       `SELECT (SELECT COUNT(*) FROM keys WHERE claimed_by IS NULL) AS free,
               (SELECT COUNT(*) FROM keys WHERE claimed_by IS NOT NULL) AS used,
-              (SELECT COUNT(*) FROM clicks WHERE reg_at IS NOT NULL) AS regs,
-              (SELECT COUNT(*) FROM clicks WHERE ftd_at IS NOT NULL) AS ftds,
+              (SELECT COUNT(*) FROM regs) AS regs,
+              (SELECT COUNT(*) FROM regs WHERE ftd_at IS NOT NULL) AS ftds,
               (SELECT COUNT(*) FROM clicks WHERE key IS NOT NULL) AS issued`
     ).first();
     const clicks = await env.DB.prepare(
-      "SELECT click_id,reg_at,ftd_at,trader_id,uid,dep,key FROM clicks ORDER BY COALESCE(ftd_at,reg_at,created_at) DESC LIMIT 100"
+      `SELECT c.click_id AS click_id,
+              (SELECT MIN(reg_at) FROM regs r WHERE r.click_id=c.click_id) AS reg_at,
+              (SELECT MIN(ftd_at) FROM regs r WHERE r.click_id=c.click_id) AS ftd_at,
+              (SELECT group_concat(trader_id, ', ') FROM regs r WHERE r.click_id=c.click_id) AS trader_id,
+              c.uid AS uid,
+              (SELECT MAX(dep) FROM regs r WHERE r.click_id=c.click_id) AS dep,
+              c.key AS key
+       FROM clicks c
+       ORDER BY COALESCE((SELECT MAX(COALESCE(ftd_at,reg_at)) FROM regs r WHERE r.click_id=c.click_id), c.created_at) DESC
+       LIMIT 100`
     ).all();
     const keys = await env.DB.prepare(
       "SELECT key,claimed_by,claimed_at,note FROM keys WHERE claimed_by IS NOT NULL ORDER BY claimed_at DESC LIMIT 200"
