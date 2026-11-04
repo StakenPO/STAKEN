@@ -8,7 +8,7 @@
     "run_worker_first": ["/pb", "/api/*"]
   },
   "d1_databases": [
-    { "binding": "DB", "database_name": "staken", "database_id": "ВСТАВЬТЕ_ID_БАЗЫ_D1" }
+    { "binding": "DB", "database_name": "staken", "database_id": "7a22fedc-6a34-409d-afd8-515f2be7be50" }
   ],
   "vars": { "MIN_DEPOSIT": "100" }
 }
