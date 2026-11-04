@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>STAKEN — админка</title>
+<style>
+:root{--bg:#070B0A;--surf:#0F1614;--line:#1E2A26;--txt:#EAF2EE;--mut:#93A39B;--g:#22C58B;--red:#EF5360;--gold:#F2C265}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;padding:24px}
+.wrap{max-width:1100px;margin:0 auto}h1{font-size:22px;margin:0 0 18px}h2{font-size:16px;margin:0 0 12px}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{background:#0B1110;border:1px solid var(--line);border-radius:12px;padding:14px}.stat b{display:block;font-size:26px}.stat span{color:var(--mut);font-size:13px}
+input,textarea{width:100%;background:#0B1110;border:1px solid #2A3B35;border-radius:10px;color:var(--txt);padding:10px 12px;font:inherit}
+textarea{min-height:110px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+button{background:var(--g);color:#04130C;border:0;border-radius:10px;padding:10px 18px;font:700 14px system-ui;cursor:pointer}
+button.sec{background:transparent;color:var(--g);border:1px solid var(--g)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>input{flex:1;min-width:200px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;word-break:break-all}
+th{color:var(--mut);font-weight:600}.scroll{overflow-x:auto}
+.ok{color:var(--g)}.bad{color:var(--red)}.warn{color:var(--gold)}.msg{margin-top:10px;min-height:20px}
+code{font-family:ui-monospace,Menlo,Consolas,monospace}
+</style></head><body><div class="wrap">
+<h1>STAKEN · админка</h1>
+<div class="card"><h2>Вход</h2><div class="row"><input id="tok" type="password" placeholder="ADMIN_TOKEN"><button id="login">Войти</button></div><div class="msg" id="m0"></div></div>
+<div id="app" style="display:none">
+  <div class="card"><h2>Сводка</h2><div class="grid" id="stats"></div><div class="row" style="margin-top:12px"><button class="sec" id="refresh">Обновить</button></div></div>
+  <div class="card"><h2>Добавить ключи в пул</h2>
+    <p style="color:var(--mut);margin-top:0">Вставьте ключи из вашего генератора, по одному в строке. Они будут выдаваться автоматически после депозита, а также вручную ниже.</p>
+    <textarea id="keys" placeholder="ключ1&#10;ключ2&#10;ключ3"></textarea>
+    <div class="row" style="margin-top:10px"><button id="addk">Добавить в пул</button></div><div class="msg" id="m1"></div></div>
+  <div class="card"><h2>Выдать ключ вручную (себе, тестеру, покупателю за $149)</h2>
+    <div class="row"><input id="note" placeholder="Кому/пометка, например: я, тест, @username"><button id="take">Взять ключ из пула</button></div>
+    <div class="msg" id="m2"></div></div>
+  <div class="card"><h2>Выдать ключ по click_id (если постбэк задержался)</h2>
+    <div class="row"><input id="cid" placeholder="click_id (32 символа, берётся из таблицы ниже)"><button id="grant">Выдать</button></div>
+    <div class="msg" id="m3"></div></div>
+  <div class="card"><h2>Клики и статусы</h2><div class="scroll"><table id="tc"></table></div></div>
+  <div class="card"><h2>Выданные ключи</h2><div class="scroll"><table id="tk"></table></div></div>
+  <div class="card"><h2>Последние постбэки (для отладки)</h2><div class="scroll"><table id="te"></table></div></div>
+</div></div>
+<script>
+var $=function(i){return document.getElementById(i)};
+var T=sessionStorage.getItem("adm")||"";if(T)$("tok").value=T;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function dt(t){return t?new Date(t*1000).toLocaleString("ru-RU"):"—"}
+async function api(path,body){
+  var o={headers:{authorization:"Bearer "+T}};
+  if(body){o.method="POST";o.headers["content-type"]="application/json";o.body=JSON.stringify(body)}
+  var r=await fetch("/api/admin/"+path,o);var d=await r.json().catch(function(){return{}});d._s=r.status;return d}
+function table(el,head,rows){$(el).innerHTML="<tr>"+head.map(function(h){return"<th>"+h+"</th>"}).join("")+"</tr>"+rows.map(function(r){return"<tr>"+r.map(function(c){return"<td>"+c+"</td>"}).join("")+"</tr>"}).join("")}
+async function load(){
+  var d=await api("overview");
+  if(d._s===401){$("m0").innerHTML='<span class="bad">Неверный токен</span>';$("app").style.display="none";return}
+  if(d._s!==200){$("m0").innerHTML='<span class="bad">Ошибка: '+esc(d.detail||d.error||d._s)+'</span>';return}
+  $("m0").innerHTML='<span class="ok">Вход выполнен</span>';$("app").style.display="";
+  var s=d.stats;$("stats").innerHTML=[["Свободных ключей",s.free],["Выдано ключей",s.used],["Регистраций",s.regs],["Депозитов (FTD)",s.ftds],["Ключей по клику",s.issued],["Мин. депозит","$"+d.min]]
+    .map(function(x){return'<div class="stat"><b class="'+(x[0]==="Свободных ключей"&&x[1]<5?"bad":"")+'">'+esc(x[1])+'</b><span>'+x[0]+'</span></div>'}).join("");
+  table("tc",["click_id","Регистрация","Депозит","Сумма","trader_id (от PO)","ID (ввёл клиент)","Ключ"],d.clicks.map(function(c){return["<code>"+esc(c.click_id)+"</code>",dt(c.reg_at),dt(c.ftd_at),c.dep?"$"+c.dep:"—",esc(c.trader_id||"—"),esc(c.uid||"—"),c.key?'<span class="ok">'+esc(c.key)+"</span>":"—"]}));
+  table("tk",["Ключ","Кому","Когда"],d.keys.map(function(k){return[esc(k.key),esc(k.note==="auto"?"авто · "+k.claimed_by.slice(0,8)+"…":k.note),dt(k.claimed_at)]}));
+  table("te",["Время","Событие","click_id","trader_id","Сумма","Результат"],d.events.map(function(e){return[dt(e.ts),esc(e.event),"<code>"+esc(e.click_id)+"</code>",esc(e.trader_id||"—"),e.dep||"—",esc(e.result)]}));
+}
+$("login").onclick=function(){T=$("tok").value.trim();sessionStorage.setItem("adm",T);load()};
+$("refresh").onclick=load;
+$("addk").onclick=async function(){var l=$("keys").value.split(/\r?\n/);var d=await api("keys/add",{keys:l});$("m1").innerHTML=d.ok?'<span class="ok">Отправлено: '+d.submitted+' (дубликаты пропущены)</span>':'<span class="bad">Ошибка</span>';if(d.ok){$("keys").value="";load()}};
+$("take").onclick=async function(){var d=await api("keys/take",{note:$("note").value||"manual"});$("m2").innerHTML=d.ok?'Ключ: <b class="ok" style="user-select:all">'+esc(d.key)+"</b>":'<span class="bad">Пул пуст, добавьте ключи</span>';load()};
+$("grant").onclick=async function(){var d=await api("keys/grant",{click_id:$("cid").value});$("m3").innerHTML=d.ok?'Ключ: <b class="ok" style="user-select:all">'+esc(d.key)+"</b>"+(d.already?" (уже был выдан)":""):'<span class="bad">Ошибка: '+esc(d.error)+"</span>";load()};
+if(T)load();
+</script></body></html>
