@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>STAKEN — менеджер сессий для Pocket Option</title>
+<meta name="description" content="STAKEN — расширение для Chrome и Edge: считает ставки, держит план и фиксирует результат сессии на Pocket Option. 5 минут бесплатно после установки.">
+<meta name="theme-color" content="#070B0A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070B0A;--bg2:#0B1110;--surf:#0F1614;--surf2:#131D1A;--line:#1E2A26;--line2:#2A3B35;
+  --txt:#EAF2EE;--mut:#93A39B;--dim:#6E7F77;
+  --g:#22C58B;--g2:#34D67F;--gdim:rgba(34,197,139,.12);--red:#EF5360;--gold:#F2C265;
+  --r:18px;--wrap:1160px;
+  --disp:Unbounded,Manrope,system-ui,sans-serif;--body:Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--txt);font:400 16px/1.65 var(--body);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+img,svg{display:block;max-width:100%}
+.w{max-width:var(--wrap);margin:0 auto;padding:0 24px}
+.d{font-family:var(--disp);font-weight:700;letter-spacing:-.025em;line-height:1.12}
+.tag{display:inline-flex;align-items:center;gap:8px;font:700 12px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--g);border:1px solid var(--line2);border-radius:99px;padding:9px 15px;background:var(--surf)}
+.tag:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--g);box-shadow:0 0 10px var(--g)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 28px;border-radius:14px;font:800 15px var(--body);border:1px solid var(--g);cursor:pointer;transition:transform .18s,box-shadow .18s,background .18s;white-space:nowrap}
+.btn.go{background:linear-gradient(180deg,#2BD79B,#1DB97F);color:#04130C;box-shadow:0 12px 32px -12px rgba(34,197,139,.9),inset 0 1px 0 rgba(255,255,255,.3)}
+.btn.go:hover{transform:translateY(-2px);box-shadow:0 18px 40px -12px rgba(34,197,139,1),inset 0 1px 0 rgba(255,255,255,.3)}
+.btn.gh{background:transparent;color:var(--g)}.btn.gh:hover{background:var(--gdim)}
+.btn.lg{min-height:58px;padding:0 34px;font-size:16px}
+.btn svg{width:18px;height:18px}
+:focus-visible{outline:2px solid var(--g);outline-offset:3px;border-radius:6px}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:50;background:rgba(7,11,10,.8);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.nav .w{display:flex;align-items:center;gap:32px;height:70px}
+.logo{display:flex;align-items:center;gap:11px;font:700 18px var(--disp);letter-spacing:-.02em}
+.mark{display:flex;flex-direction:column;gap:3px;width:22px}.mark i{height:4px;border-radius:2px;background:var(--g)}.mark i:nth-child(1){width:68%}.mark i:nth-child(2){width:92%;opacity:.8}.mark i:nth-child(3){width:100%;opacity:.55}
+.nav nav{display:flex;gap:28px;margin-left:auto;font-size:14px;font-weight:600;color:var(--mut)}
+.nav nav a{transition:color .15s}.nav nav a:hover{color:var(--txt)}
+.nav .btn{min-height:44px;padding:0 20px;font-size:14px}
+
+/* HERO */
+.hero{position:relative;padding:76px 0 90px;overflow:hidden}
+.hero:before{content:"";position:absolute;inset:-10% -10% auto auto;width:760px;height:760px;background:radial-gradient(circle,rgba(34,197,139,.2),transparent 65%);pointer-events:none}
+.hero:after{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:56px 56px;opacity:.18;-webkit-mask-image:radial-gradient(70% 60% at 70% 30%,#000,transparent);mask-image:radial-gradient(70% 60% at 70% 30%,#000,transparent);pointer-events:none}
+.hero .w{position:relative;z-index:1;display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:center}
+.hero h1{font-size:clamp(34px,4.6vw,56px);margin:24px 0 22px}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,#34D67F,#22C58B 60%,#7BE8BD);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:#B9C7C0;font-size:clamp(16px,1.5vw,18.5px);max-width:560px}
+.cta{display:flex;flex-wrap:wrap;gap:14px;margin:34px 0 22px}
+.ticks{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:13.5px;color:var(--mut);font-weight:600}
+.ticks span{display:inline-flex;align-items:center;gap:8px}
+.ticks svg{width:16px;height:16px;color:var(--g)}
+
+/* DEVICE / EXTENSION MOCKUP */
+.stage{position:relative;perspective:1400px}
+.glow{position:absolute;inset:8% 4% auto 4%;height:70%;background:radial-gradient(closest-side,rgba(34,197,139,.28),transparent);filter:blur(30px);pointer-events:none}
+.browser{position:relative;background:#0A100E;border:1px solid var(--line2);border-radius:20px;overflow:hidden;box-shadow:0 50px 90px -30px rgba(0,0,0,.9),0 0 0 8px rgba(34,197,139,.04);transform:rotateY(-6deg) rotateX(2deg);transform-origin:center right;transition:transform .5s}
+.stage:hover .browser{transform:rotateY(-2deg) rotateX(0)}
+.bar{display:flex;align-items:center;gap:7px;padding:12px 14px;background:#0D1412;border-bottom:1px solid var(--line)}
+.bar i{width:10px;height:10px;border-radius:50%;background:#26352F}
+.url{margin-left:10px;flex:1;font-size:11.5px;color:var(--dim);background:#0A100E;border:1px solid var(--line);border-radius:8px;padding:5px 12px}
+.ext{width:26px;height:26px;border-radius:8px;background:var(--gdim);display:grid;place-items:center}.ext .mark{width:14px;gap:2px}.ext .mark i{height:3px}
+.view{display:grid;grid-template-columns:1fr 230px;min-height:360px}
+.chart{position:relative;padding:18px;border-right:1px solid var(--line)}
+.chart .pair{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);font-weight:700}
+.chart .pair b{color:var(--txt)}
+.chart svg{width:100%;height:calc(100% - 28px);margin-top:10px}
+.cline{stroke-dasharray:900;stroke-dashoffset:900;animation:draw 2.6s ease forwards .3s}
+@keyframes draw{to{stroke-dashoffset:0}}
+.side{padding:14px;background:linear-gradient(180deg,#0E1614,#0B1110);display:flex;flex-direction:column;gap:10px}
+.ph{display:flex;align-items:center;justify-content:space-between;font:700 12px var(--disp)}
+.chip{font:800 10px var(--body);letter-spacing:.1em;color:var(--g);border:1px solid var(--g);border-radius:7px;padding:3px 8px}
+.stake{text-align:center;padding:6px 0 0}.stake small{color:var(--dim);letter-spacing:.14em;font-size:9.5px;font-weight:700}
+.stake b{display:block;font:700 34px/1.1 var(--disp);margin-top:4px;transition:color .3s}
+.slots{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.slots i{font-style:normal;text-align:center;font-size:10px;font-weight:700;padding:5px 0;border-radius:6px;border:1px solid var(--line2);color:var(--dim);transition:.25s}
+.slots i.on{border-color:var(--g);color:var(--g);background:var(--gdim)}
+.slots i.win{background:var(--g);color:#04130C;border-color:var(--g)}
+.slots i.loss{background:rgba(239,83,96,.15);border-color:var(--red);color:var(--red)}
+.pre{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:3px}
+.pre button{all:unset;cursor:pointer;text-align:center;font:700 10px var(--body);color:var(--mut);padding:6px 0;border-radius:6px;transition:.2s}
+.pre button.on{background:var(--gdim);color:var(--g)}
+.kv{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.kv div{padding:7px 9px;font-size:9.5px;color:var(--dim);font-weight:600}.kv div:nth-child(n+3){border-top:1px solid var(--line)}.kv div:nth-child(odd){border-right:1px solid var(--line)}
+.kv b{display:block;font:700 13px var(--body);color:var(--txt);margin-top:1px}.kv b.g{color:var(--g2)}.kv b.r{color:var(--red)}
+.bb{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.bb button{all:unset;cursor:pointer;text-align:center;padding:10px 0;border-radius:9px;font:800 11px var(--body);letter-spacing:.12em;transition:transform .15s,filter .15s}
+.bb button:hover{transform:translateY(-1px);filter:brightness(1.1)}
+.bb .u{background:var(--g);color:#04130C}.bb .s{background:var(--red);color:#fff}
+.cap{font-size:11.5px;color:var(--dim);text-align:center;margin-top:16px}
+.float{position:absolute;display:flex;align-items:center;gap:10px;background:rgba(15,22,20,.92);backdrop-filter:blur(10px);border:1px solid var(--line2);border-radius:14px;padding:11px 15px;font-size:12.5px;font-weight:700;box-shadow:0 20px 40px -16px #000;animation:bob 5s ease-in-out infinite}
+.float small{display:block;font-weight:500;color:var(--mut);font-size:11px}
+.float .ic{width:32px;height:32px;border-radius:9px;background:var(--gdim);color:var(--g);display:grid;place-items:center}.float .ic svg{width:17px;height:17px}
+.f1{left:-26px;bottom:42px}.f2{right:-10px;top:-18px;animation-delay:-2.5s}
+@keyframes bob{50%{transform:translateY(-8px)}}
+
+/* TRUST STRIP */
+.strip{border-block:1px solid var(--line);background:var(--bg2)}
+.strip .w{display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:0}
+.strip .it{display:flex;gap:14px;align-items:center;padding:26px 24px;border-left:1px solid var(--line)}.strip .it:first-child{border-left:0}
+.strip .ic{flex:none;width:44px;height:44px;border-radius:12px;background:var(--gdim);color:var(--g);display:grid;place-items:center}.strip .ic svg{width:22px;height:22px}
+.strip b{display:block;font:700 15px var(--body)}.strip span{font-size:13px;color:var(--mut);line-height:1.4;display:block}
+
+/* SECTIONS */
+.sec{padding:104px 0}
+.sec h2{font-size:clamp(28px,3.4vw,42px);margin:18px 0 16px;max-width:760px}
+.sec .sub{color:var(--mut);max-width:640px;font-size:clamp(15.5px,1.4vw,17.5px);margin-bottom:52px}
+.center{text-align:center}.center h2,.center .sub{margin-left:auto;margin-right:auto}
+
+/* STEPS */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative;counter-reset:s}
+.step{position:relative;background:var(--surf);border:1px solid var(--line);border-radius:var(--r);padding:30px 28px}
+.step .n{font:700 13px var(--disp);color:var(--g);background:var(--gdim);width:42px;height:42px;border-radius:12px;display:grid;place-items:center;margin-bottom:20px}
+.step h3{font-size:19px;margin-bottom:8px}.step p{color:var(--mut);font-size:15px}
+
+/* BENTO FEATURES */
+.bento{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.card{position:relative;background:linear-gradient(180deg,var(--surf2),var(--surf));border:1px solid var(--line);border-radius:var(--r);padding:28px;display:flex;flex-direction:column;transition:border-color .25s,transform .25s}
+.card:hover{border-color:#2F6B55;transform:translateY(-4px)}
+.card .ic{width:46px;height:46px;border-radius:13px;background:var(--gdim);color:var(--g);display:grid;place-items:center;margin-bottom:18px}.card .ic svg{width:23px;height:23px}
+.card h3{font-size:18px;margin-bottom:8px;line-height:1.3}.card p{color:var(--mut);font-size:14.5px;flex:1}
+.card .get{margin-top:18px;padding-top:15px;border-top:1px solid var(--line);font-size:13px;font-weight:700;color:var(--g)}
+.card.big{grid-column:span 2}
+.card.big h3{font-size:22px}
+
+/* SHOWCASE */
+.show{background:var(--bg2);border-block:1px solid var(--line)}
+.show .w{display:grid;grid-template-columns:.9fr 1.1fr;gap:64px;align-items:center}
+.list{display:flex;flex-direction:column;gap:14px;margin-top:28px}
+.list div{display:flex;gap:14px;align-items:flex-start;font-size:15.5px;color:#C4D1CA}
+.list svg{flex:none;width:22px;height:22px;color:var(--g);margin-top:2px}
+.phone-row{display:flex;gap:22px;justify-content:center;align-items:flex-end}
+.phone{width:250px;background:#0A100E;border:7px solid #1A2622;border-radius:38px;box-shadow:0 40px 80px -30px #000,0 0 0 1px var(--line2);overflow:hidden}
+.phone .notch{width:80px;height:20px;background:#1A2622;border-radius:0 0 14px 14px;margin:0 auto}
+.phone .scr{padding:12px 14px 18px;display:flex;flex-direction:column;gap:10px}
+.phone.sm{width:210px;transform:translateY(18px);opacity:.92}
+.phone .stake b{font-size:38px}
+.mini-chart{height:92px;border:1px solid var(--line);border-radius:12px;background:#080D0C;overflow:hidden}
+
+/* PRICING */
+.prices{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
+.price{position:relative;display:flex;flex-direction:column;background:var(--surf);border:1px solid var(--line);border-radius:22px;padding:34px 30px}
+.price .nm{font:700 14px var(--body);color:var(--mut);letter-spacing:.04em}
+.price .big{font:700 clamp(38px,4vw,50px)/1 var(--disp);margin:16px 0 8px;letter-spacing:-.03em}
+.price .big sup{font-size:.45em;vertical-align:super;margin-left:2px}
+.price .per{font-size:13.5px;color:var(--mut)}
+.price ul{list-style:none;margin:26px 0 30px;display:flex;flex-direction:column;gap:12px;color:#C4D1CA;font-size:15px;flex:1}
+.price li{display:flex;gap:11px}.price li svg{flex:none;width:19px;height:19px;color:var(--g);margin-top:3px}
+.price .btn{width:100%}
+.price.hot{border-color:var(--g);background:linear-gradient(180deg,rgba(34,197,139,.12),var(--surf) 55%);box-shadow:0 30px 70px -30px rgba(34,197,139,.5);transform:translateY(-10px)}
+.badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font:800 11px var(--body);letter-spacing:.1em;background:var(--gold);color:#241A04;padding:6px 14px;border-radius:99px;white-space:nowrap}
+.trial{margin-top:26px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:22px;background:var(--surf);border:1px solid #2F6B55;border-radius:20px;padding:28px 32px}
+.trial h3{font-size:20px;margin-bottom:6px}.trial p{color:var(--mut);max-width:640px;font-size:15px}
+
+/* FAQ */
+.faq{max-width:820px;margin:0 auto}
+.faq details{border-bottom:1px solid var(--line);padding:4px 0}
+.faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:18px;padding:20px 0;font-weight:700;font-size:17px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:after{content:"+";flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--line2);display:grid;place-items:center;color:var(--g);font-size:20px;transition:.2s}
+.faq details[open] summary:after{content:"−";background:var(--gdim)}
+.faq p{color:var(--mut);padding:0 48px 22px 0;font-size:15.5px}
+
+/* RISK */
+.risk{display:flex;gap:18px;align-items:flex-start;background:rgba(242,194,101,.06);border:1px solid rgba(242,194,101,.28);border-radius:18px;padding:24px 28px;max-width:960px;margin:0 auto}
+.risk svg{flex:none;width:26px;height:26px;color:var(--gold);margin-top:2px}
+.risk b{display:block;margin-bottom:4px;color:#F4D9A0}.risk p{color:#BFB59B;font-size:14.5px}
+
+/* FINAL */
+.final{padding:0 24px 96px}
+.final .box{position:relative;overflow:hidden;max-width:1160px;margin:0 auto;text-align:center;padding:84px 28px;border-radius:30px;border:1px solid #2F6B55;background:radial-gradient(70% 130% at 50% 0%,rgba(34,197,139,.24),var(--bg2) 72%)}
+.final h2{font-size:clamp(28px,3.6vw,44px);margin:0 auto 16px;max-width:700px}
+.final p{color:#B9C7C0;max-width:520px;margin:0 auto 32px}
+
+/* FOOTER */
+.foot{border-top:1px solid var(--line);padding:38px 0 56px;font-size:12.5px;color:var(--dim);line-height:1.75}
+.foot .r{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;margin-bottom:18px;font-size:14px;color:var(--mut)}
+.sticky{display:none}
+
+/* REVEAL */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .7s,transform .7s}.rv.in{opacity:1;transform:none}
+
+
+/* HERO v3 */
+.hero{padding:84px 0 96px}
+.hero .w{grid-template-columns:.92fr 1.08fr;gap:48px}
+.hero h1{font-size:clamp(34px,4.4vw,58px);line-height:1.06;margin:22px 0 22px}.hero h1 em{white-space:nowrap}
+.cta{flex-wrap:nowrap}.cta .btn{white-space:nowrap}
+.stage{perspective:none}
+.glow{inset:0 -6% 0 -6%;height:auto;background:radial-gradient(closest-side,rgba(34,197,139,.34),transparent);filter:blur(46px)}
+.browser{transform:none!important;border-radius:22px;background:linear-gradient(180deg,#0E1614,#090E0C);border:1px solid rgba(34,197,139,.28);box-shadow:0 60px 110px -30px rgba(0,0,0,.95),0 0 0 1px rgba(255,255,255,.03) inset,0 0 80px -20px rgba(34,197,139,.35)}
+.view{grid-template-columns:1fr 260px;min-height:440px}
+.chart{display:flex;flex-direction:column;padding:18px 18px 14px}
+.chart svg{flex:1;height:auto;min-height:0}
+.cd{transform-origin:50% 100%;opacity:0;animation:cin .5s ease forwards;animation-delay:calc(var(--i)*60ms + .2s)}
+@keyframes cin{from{opacity:0;transform:scaleY(.2)}to{opacity:1;transform:none}}
+.tgt{position:absolute;left:24px;top:58px;font-size:10.5px;font-weight:800;letter-spacing:.06em;color:#04130C;background:var(--g);border-radius:6px;padding:3px 8px}
+.px{position:absolute;right:0;bottom:30%;font-size:10.5px;font-weight:800;color:var(--txt);background:#26352F;border-radius:6px 0 0 6px;padding:3px 8px}
+.stake b{font-size:40px}
+.slots i{padding:6px 0;font-size:11px}
+.kv div{font-size:10.5px;padding:9px 11px}.kv b{font-size:15px}
+.bb button{padding:13px 0;font-size:12px}
+.pre button{font-size:10.5px;padding:7px 0}
+.ph{font-size:13px}
+.f1{left:-34px;bottom:-22px}.f2{right:-8px;top:-22px}
+.float{font-size:13px;padding:12px 16px}
+@media(max-width:1180px){.cta{flex-wrap:wrap}.hero .w{grid-template-columns:1fr 1fr}}
+
+.cap{margin:46px 0 0 auto;max-width:320px;text-align:right}
+@media(max-width:1024px){.cap{margin:20px auto 0;max-width:none;text-align:center}}
+/* TABLET */
+@media(max-width:1024px){
+  .hero .w{grid-template-columns:1fr;gap:56px}.hero{padding:56px 0 72px}
+  .stage{max-width:620px;margin:0 auto;width:100%}.browser{transform:none}.stage:hover .browser{transform:none}
+  .f1{left:-6px}.f2{right:-6px}
+  .strip .w{grid-template-columns:repeat(2,1fr)}.strip .it:nth-child(3){border-left:0}.strip .it:nth-child(n+3){border-top:1px solid var(--line)}
+  .bento{grid-template-columns:repeat(2,1fr)}
+  .show .w{grid-template-columns:1fr;gap:48px}
+  .prices{grid-template-columns:1fr;max-width:520px;margin:0 auto}.price.hot{transform:none;order:-1}
+  .sec{padding:80px 0}
+}
+/* PHONE */
+@media(max-width:700px){
+  .w{padding:0 18px}
+  .nav .w{height:62px}.nav nav{display:none}.nav .btn{margin-left:auto;min-height:40px;padding:0 16px;font-size:13px}
+  .hero{padding:40px 0 56px}
+  .cta .btn{flex:1 1 100%}
+  .view{grid-template-columns:1fr}.chart{display:none}
+  .side{padding:16px}
+  .stake b{font-size:44px}
+  .float{display:none}
+  .strip .w{grid-template-columns:1fr}.strip .it{border-left:0!important;border-top:1px solid var(--line);padding:18px}.strip .it:first-child{border-top:0}
+  .steps{grid-template-columns:1fr}
+  .bento{grid-template-columns:1fr}.card.big{grid-column:auto}
+  .sec{padding:64px 0}.sec .sub{margin-bottom:36px}
+  .phone-row{gap:0}.phone.sm{display:none}
+  .trial{padding:24px 20px}.trial .btn{width:100%}
+  .faq summary{font-size:16px}.faq p{padding-right:0}
+  .risk{flex-direction:column;padding:20px}
+  .final{padding:0 14px 110px}.final .box{padding:56px 20px;border-radius:24px}.final .btn{width:100%}
+  .foot{padding-bottom:110px}
+  .sticky{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;gap:12px;align-items:center;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(7,11,10,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line2);transform:translateY(110%);transition:transform .35s}
+  .sticky.show{transform:none}
+  .sticky div{flex:1;font-size:12px;color:var(--mut);line-height:1.3}.sticky b{display:block;color:var(--txt);font-size:14px}
+  .sticky .btn{min-height:46px;padding:0 20px;font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.cline{stroke-dashoffset:0}.rv{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.3 8-8 9-4.7-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+<symbol id="i-calc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 8h7M9 13h.01M12 13h.01M15 13h.01M9 17h.01M12 17h.01M15 17h.01"/></symbol>
+<symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".6" fill="currentColor"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="3"/><path d="M8 10.5V8a4 4 0 018 0v2.5"/></symbol>
+<symbol id="i-sync" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 00-14-4.5L4 9M4 4v5h5M4 13a8 8 0 0014 4.5L20 15M20 20v-5h-5"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6L4.5 18.5A2 2 0 006.3 21.5h11.4a2 2 0 001.8-3L14 9V3"/><path d="M7.5 15h9"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></symbol>
+<symbol id="i-tg" viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 4.3L2.9 11.5c-1 .4-1 1.1-.2 1.3l4.8 1.5 1.8 5.6c.2.6.4.8.8.8.4 0 .6-.2.9-.4l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8L22.9 5.5c.3-1.2-.4-1.7-1.3-1.2zM9 14l9.4-5.9c.4-.3.8-.1.5.2l-7.8 7-.3 3.2z"/></symbol>
+<symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5h.01"/></symbol>
+<symbol id="i-chrome" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.6"/><path d="M12 8.4h8.2M8.9 10.2L4.8 3.9M9 13.8l-4.1 7"/></symbol>
+</defs></svg>
+
+<header class="nav"><div class="w">
+  <a class="logo" href="#top" aria-label="STAKEN"><span class="mark"><i></i><i></i><i></i></span>STAKEN</a>
+  <nav aria-label="Навигация"><a href="#how">Как работает</a><a href="#features">Возможности</a><a href="#pricing">Тарифы</a><a href="#faq">FAQ</a></nav>
+  <a class="btn go" href="https://t.me/staken_manager">Получить доступ</a>
+</div></header>
+
+<main id="top">
+<!-- HERO -->
+<section class="hero"><div class="w">
+  <div>
+    <span class="tag">Менеджер сессий</span>
+    <h1 class="d">Трейдинг по плану, а не <em>по эмоциям</em></h1>
+    <p class="lead">STAKEN — это инновационный инструмент управления капиталом для Pocket Option, работающий на основе инновационного алгоритма. Он был разработан для защиты капитала, снижения влияния эмоциональных факторов на торговлю и повышения прибыльности.</p>
+    <div class="cta">
+      <a class="btn go lg" href="https://t.me/staken_manager"><svg><use href="#i-tg"/></svg>Получить доступ</a>
+      <a class="btn gh lg" href="#how">Как это работает</a>
+    </div>
+    <div class="ticks">
+      <span><svg><use href="#i-check"/></svg>5 минут бесплатно</span>
+      <span><svg><use href="#i-check"/></svg>Chrome и Edge</span>
+      <span><svg><use href="#i-check"/></svg>от $15 в неделю</span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="glow"></div>
+    <div class="browser" role="img" aria-label="Макет панели STAKEN в браузере">
+      <div class="bar"><i></i><i></i><i></i><span class="url">pocketoption.com — торговая сессия</span><span class="ext"><span class="mark"><i></i><i></i><i></i></span></span></div>
+      <div class="view">
+        <div class="chart">
+          <div class="pair"><span><b>EUR/USD</b> · 1 мин</span><span>Выплата <b style="color:var(--g2)">92%</b></span></div>
+          <svg viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
+            <g stroke="#1E2A26" stroke-width="1"><path d="M0 60H400M0 120H400M0 180H400M0 240H400"/></g>
+            <g class="cd" style="--i:0"><path d="M7.7 236.9V147.5" stroke="#EF5360" stroke-width="1.6"/><rect x="2.7" y="196.6" width="10" height="5.4" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:1"><path d="M23.1 238.7V166.0" stroke="#EF5360" stroke-width="1.6"/><rect x="18.1" y="202.0" width="10" height="3.9" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:2"><path d="M38.5 274.5V168.3" stroke="#EF5360" stroke-width="1.6"/><rect x="33.5" y="205.9" width="10" height="35.6" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:3"><path d="M53.8 258.1V169.7" stroke="#22C58B" stroke-width="1.6"/><rect x="48.8" y="194.5" width="10" height="46.9" rx="2" fill="#22C58B"/></g><g class="cd" style="--i:4"><path d="M69.2 271.4V154.4" stroke="#EF5360" stroke-width="1.6"/><rect x="64.2" y="194.5" width="10" height="32.3" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:5"><path d="M84.6 316.0V176.1" stroke="#EF5360" stroke-width="1.6"/><rect x="79.6" y="226.8" width="10" height="37.8" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:6"><path d="M100.0 301.7V214.2" stroke="#22C58B" stroke-width="1.6"/><rect x="95.0" y="233.4" width="10" height="31.3" rx="2" fill="#22C58B"/></g><g class="cd" style="--i:7"><path d="M115.4 307.8V218.0" stroke="#EF5360" stroke-width="1.6"/><rect x="110.4" y="233.4" width="10" height="40.8" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:8"><path d="M130.8 317.7V260.0" stroke="#EF5360" stroke-width="1.6"/><rect x="125.8" y="274.2" width="10" height="21.1" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:9"><path d="M146.2 325.5V239.5" stroke="#22C58B" stroke-width="1.6"/><rect x="141.2" y="285.4" width="10" height="9.8" rx="2" fill="#22C58B"/></g><g class="cd" style="--i:10"><path d="M161.5 323.5V236.9" stroke="#22C58B" stroke-width="1.6"/><rect x="156.5" y="269.4" width="10" height="16.0" rx="2" fill="#22C58B"/></g><g class="cd" style="--i:11"><path d="M176.9 300.3V213.3" stroke="#22C58B" stroke-width="1.6"/><rect x="171.9" y="237.2" width="10" height="32.2" rx="2" fill="#22C58B"/></g><g class="cd" style="--i:12"><path d="M192.3 289.1V121.3" stroke="#22C58B" stroke-width="1.6"/><rect x="187.3" y="167.2" width="10" height="70.0" rx="2" fill="#22C58B"/></g><g class="cd" style="--i:13"><path d="M207.7 192.5V107.8" stroke="#22C58B" stroke-width="1.6"/><rect x="202.7" y="129.8" width="10" height="37.3" rx="2" fill="#22C58B"/></g><g class="cd" style="--i:14"><path d="M223.1 155.5V86.9" stroke="#EF5360" stroke-width="1.6"/><rect x="218.1" y="129.8" width="10" height="9.9" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:15"><path d="M238.5 185.8V109.0" stroke="#22C58B" stroke-width="1.6"/><rect x="233.5" y="137.1" width="10" height="3.0" rx="2" fill="#22C58B"/></g><g class="cd" style="--i:16"><path d="M253.8 183.2V58.5" stroke="#22C58B" stroke-width="1.6"/><rect x="248.8" y="71.5" width="10" height="65.6" rx="2" fill="#22C58B"/></g><g class="cd" style="--i:17"><path d="M269.2 139.0V40.2" stroke="#EF5360" stroke-width="1.6"/><rect x="264.2" y="71.5" width="10" height="18.9" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:18"><path d="M284.6 118.9V6.4" stroke="#22C58B" stroke-width="1.6"/><rect x="279.6" y="22.3" width="10" height="68.1" rx="2" fill="#22C58B"/></g><g class="cd" style="--i:19"><path d="M300.0 65.7V-29.7" stroke="#22C58B" stroke-width="1.6"/><rect x="295.0" y="-6.2" width="10" height="28.5" rx="2" fill="#22C58B"/></g><g class="cd" style="--i:20"><path d="M315.4 52.5V-56.8" stroke="#EF5360" stroke-width="1.6"/><rect x="310.4" y="-6.2" width="10" height="32.7" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:21"><path d="M330.8 44.1V-39.1" stroke="#22C58B" stroke-width="1.6"/><rect x="325.8" y="-16.5" width="10" height="43.0" rx="2" fill="#22C58B"/></g><g class="cd" style="--i:22"><path d="M346.2 30.0V-60.6" stroke="#EF5360" stroke-width="1.6"/><rect x="341.2" y="-16.5" width="10" height="31.1" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:23"><path d="M361.5 72.0V-15.8" stroke="#EF5360" stroke-width="1.6"/><rect x="356.5" y="14.6" width="10" height="22.5" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:24"><path d="M376.9 99.7V19.0" stroke="#EF5360" stroke-width="1.6"/><rect x="371.9" y="37.1" width="10" height="21.0" rx="2" fill="#EF5360"/></g><g class="cd" style="--i:25"><path d="M392.3 75.7V-1.4" stroke="#22C58B" stroke-width="1.6"/><rect x="387.3" y="28.0" width="10" height="30.1" rx="2" fill="#22C58B"/></g>
+            <path d="M0 36.0H400" stroke="#34D67F" stroke-width="1.2" stroke-dasharray="5 5" opacity=".7"/>
+            <path d="M0 28.0H400" stroke="#8FA39A" stroke-width="1" stroke-dasharray="2 4" opacity=".6"/>
+          </svg>
+          <span class="tgt">Цель сессии</span><span class="px">$1.0847</span>
+        </div>
+        <aside class="side" id="panel" aria-label="Панель STAKEN (демо)">
+          <div class="ph"><span>STAKEN</span><span class="chip" id="mode">REAL</span></div>
+          <div class="stake"><small>СЛЕДУЮЩАЯ СТАВКА</small><b id="stake">$3.34</b></div>
+          <div class="slots" id="slots"><i class="on">1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i></div>
+          <div class="pre" id="pre" role="tablist"><button class="on" data-p="0">Осторожно</button><button data-p="1">Баланс</button><button data-p="2">Активно</button></div>
+          <div class="kv"><div>Баланс<b id="bal">$268.95</b></div><div>Цель<b id="goal">$272.76</b></div><div>P/L<b class="g" id="pl">+$0.00</b></div><div>Шанс провала<b id="fail">0.8%</b></div></div>
+          <div class="bb"><button class="u" id="bu">КУПИТЬ</button><button class="s" id="bs">ПРОДАТЬ</button></div>
+        </aside>
+      </div>
+    </div>
+    <div class="float f1"><span class="ic"><svg><use href="#i-shield"/></svg></span><span>Лимит потерь задаёте вы<small>Он не растёт сам</small></span></div>
+    <div class="float f2"><span class="ic"><svg><use href="#i-target"/></svg></span><span>Цель достигнута<small>Сигнал «Стоп»</small></span></div>
+    <p class="cap">Интерактивная демонстрация. Нажмите на пресет или на «Купить / Продать». Цифры вымышленные.</p>
+  </div>
+</div></section>
+
+<!-- TRUST STRIP -->
+<div class="strip"><div class="w">
+  <div class="it"><span class="ic"><svg><use href="#i-eye"/></svg></span><div><b>Цена плана известна</b><span>Шанс провала виден до старта</span></div></div>
+  <div class="it"><span class="ic"><svg><use href="#i-calc"/></svg></span><div><b>Расчёт автоматически</b><span>Сумма ставки в реальном времени</span></div></div>
+  <div class="it"><span class="ic"><svg><use href="#i-flask"/></svg></span><div><b>Тестовый режим</b><span>Прогон плана без риска</span></div></div>
+  <div class="it"><span class="ic"><svg><use href="#i-tg"/></svg></span><div><b>Поддержка в Telegram</b><span>Ключ и помощь от менеджера</span></div></div>
+</div></div>
+
+<!-- HOW -->
+<section class="sec" id="how"><div class="w center">
+  <span class="tag">Как это работает</span>
+  <h2 class="d">Три шага до первой сессии</h2>
+  <p class="sub">Никаких сложных настроек. Установили, выбрали риск, торгуете по подсказкам панели.</p>
+  <div class="steps" style="text-align:left">
+    <div class="step rv"><div class="n">01</div><h3>Установите и получите ключ</h3><p>Поставьте расширение в Chrome или Edge. Первые 5 минут бесплатны, ключ для полного доступа выдаёт менеджер в Telegram.</p></div>
+    <div class="step rv"><div class="n">02</div><h3>Выберите пресет</h3><p>Панель покажет шанс провала каждого пресета. Вы выбираете уровень риска осознанно, а не наугад.</p></div>
+    <div class="step rv"><div class="n">03</div><h3>Следуйте плану</h3><p>STAKEN считает сумму ставки, фиксирует WIN, LOSS или TIE и сообщает «Стоп», когда цель достигнута.</p></div>
+  </div>
+</div></section>
+
+<!-- FEATURES -->
+<section class="sec" id="features" style="padding-top:0"><div class="w">
+  <span class="tag">Возможности</span>
+  <h2 class="d">Вещи, которые STAKEN делает за вас</h2>
+  <p class="sub">Инструмент управляет сделками и риском. Он не угадывает рынок.</p>
+  <div class="bento">
+    <div class="card big rv"><div class="ic"><svg><use href="#i-eye"/></svg></div><h3>Цена плана известна заранее</h3><p>Перед стартом панель показывает шанс провала каждого пресета. Вы видите границы риска до первой сделки и выбираете его осознанно, без сюрпризов на дистанции.</p><div class="get">Вы получаете: спокойствие и контроль</div></div>
+    <div class="card rv"><div class="ic"><svg><use href="#i-calc"/></svg></div><h3>Ставка считается за вас</h3><p>Панель выдаёт сумму следующей ставки под вашу цель и баланс.</p><div class="get">Экономия времени, ноль ошибок</div></div>
+    <div class="card rv"><div class="ic"><svg><use href="#i-target"/></svg></div><h3>Дисциплина вместо эмоций</h3><p>План «N побед из M сделок» и сигнал «Стоп» при достижении цели.</p><div class="get">Торговля по плану</div></div>
+    <div class="card rv"><div class="ic"><svg><use href="#i-lock"/></svg></div><h3>Защита депозита</h3><p>Лимит проигрышей и минимальный капитал видны сразу. Сумму риска задаёте вы.</p><div class="get">Понятные границы потерь</div></div>
+    <div class="card rv"><div class="ic"><svg><use href="#i-sync"/></svg></div><h3>Подстройка под выплату</h3><p>Если выплата актива меняется в сессии, оставшиеся ставки пересчитываются.</p><div class="get">Точный расчёт всегда</div></div>
+    <div class="card rv"><div class="ic"><svg><use href="#i-shield"/></svg></div><h3>Результат фиксируется сам</h3><p>Панель следит за балансом, определяет WIN, LOSS или TIE и исправляет запоздавшие выплаты.</p><div class="get">Честный учёт без ручной работы</div></div>
+    <div class="card rv"><div class="ic"><svg><use href="#i-flask"/></svg></div><h3>Проверка без риска</h3><p>Тестовый режим прогоняет план на бумаге, плюс 5 минут бесплатно после установки.</p><div class="get">Уверенность до оплаты</div></div>
+  </div>
+</div></section>
+
+<!-- SHOWCASE -->
+<section class="sec show"><div class="w">
+  <div>
+    <span class="tag">Удобно везде</span>
+    <h2 class="d">Одна панель. Понятна с первого взгляда</h2>
+    <p class="sub" style="margin-bottom:0">Крупная сумма следующей ставки, прогресс плана и главные цифры сессии. Ничего лишнего, чтобы не отвлекаться от графика.</p>
+    <div class="list">
+      <div><svg><use href="#i-check"/></svg>Сумма следующей ставки всегда на виду</div>
+      <div><svg><use href="#i-check"/></svg>Прогресс плана по шагам: победа, проигрыш, ожидание</div>
+      <div><svg><use href="#i-check"/></svg>Баланс, цель, P/L и шанс провала в одной сетке</div>
+      <div><svg><use href="#i-check"/></svg>Интерфейс на русском и английском</div>
+    </div>
+    <div class="cta" style="margin-bottom:0"><a class="btn go" href="https://t.me/staken_manager">Попробовать бесплатно</a></div>
+  </div>
+  <div class="phone-row" aria-hidden="true">
+    <div class="phone sm"><div class="notch"></div><div class="scr">
+      <div class="ph"><span>STAKEN</span><span class="chip">REAL</span></div>
+      <div class="mini-chart"><svg viewBox="0 0 200 92" preserveAspectRatio="none" width="100%" height="100%"><path d="M0 70L25 60 50 66 75 44 100 52 125 32 150 40 175 22 200 28" fill="none" stroke="#22C58B" stroke-width="2.2"/></svg></div>
+      <div class="kv"><div>Баланс<b>$268.95</b></div><div>Цель<b>$272.76</b></div></div>
+    </div></div>
+    <div class="phone"><div class="notch"></div><div class="scr">
+      <div class="ph"><span>STAKEN</span><span class="chip">REAL</span></div>
+      <div class="stake"><small>СЛЕДУЮЩАЯ СТАВКА</small><b>$6.68</b></div>
+      <div class="slots"><i class="loss">1</i><i class="on">2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i></div>
+      <div class="kv"><div>Баланс<b>$262.27</b></div><div>Цель<b>$272.76</b></div><div>P/L<b class="r">−$3.34</b></div><div>Осталось<b>6</b></div></div>
+      <div class="bb"><button class="u">КУПИТЬ</button><button class="s">ПРОДАТЬ</button></div>
+    </div></div>
+  </div>
+</div></section>
+
+<!-- PRICING -->
+<section class="sec" id="pricing"><div class="w center">
+  <span class="tag">Тарифы</span>
+  <h2 class="d">Один ключ открывает все возможности</h2>
+  <p class="sub">Никаких скрытых платежей и урезанных версий: любой тариф даёт полный доступ. Ключ выдаёт менеджер в Telegram.</p>
+  <div class="prices" style="text-align:left">
+    <div class="price rv"><span class="nm">7 ДНЕЙ</span><div class="big">15<sup>$</sup></div><div class="per">≈ 2,1$ в день</div>
+      <ul><li><svg><use href="#i-check"/></svg>Все 8 возможностей</li><li><svg><use href="#i-check"/></svg>Пресеты, журнал, экспорт</li><li><svg><use href="#i-check"/></svg>Поддержка в Telegram</li></ul>
+      <a class="btn gh" href="https://t.me/staken_manager">Выбрать</a></div>
+    <div class="price hot rv"><span class="badge">ВЫБОР БОЛЬШИНСТВА</span><span class="nm">30 ДНЕЙ</span><div class="big">45<sup>$</sup></div><div class="per">≈ 1,5$ в день</div>
+      <ul><li><svg><use href="#i-check"/></svg>Все 8 возможностей</li><li><svg><use href="#i-check"/></svg>Обновления включены</li><li><svg><use href="#i-check"/></svg>Приоритетная поддержка</li></ul>
+      <a class="btn go" href="https://t.me/staken_manager">Получить доступ</a></div>
+    <div class="price rv"><span class="nm">НАВСЕГДА</span><div class="big">199<sup>$</sup></div><div class="per">Один платёж, без продлений</div>
+      <ul><li><svg><use href="#i-check"/></svg>Бессрочная лицензия</li><li><svg><use href="#i-check"/></svg>Все будущие обновления</li><li><svg><use href="#i-check"/></svg>Поддержка в Telegram</li></ul>
+      <a class="btn gh" href="https://t.me/staken_manager">Выбрать</a></div>
+  </div>
+  <div class="trial" style="text-align:left"><div><h3>Не уверены? Проверьте сами</h3><p>Установите STAKEN, получите 5 минут бесплатно и посмотрите, как панель считает ставки на вашем счёте. Вопросы по установке и ключам: @staken_manager.</p></div><a class="btn go" href="https://t.me/staken_manager"><svg><use href="#i-tg"/></svg>Написать в Telegram</a></div>
+</div></section>
+
+<!-- FAQ -->
+<section class="sec" id="faq" style="padding-top:0"><div class="w">
+  <div class="center"><span class="tag">FAQ</span><h2 class="d">Частые вопросы</h2><p class="sub">Коротко о главном. Остальное подскажет менеджер.</p></div>
+  <div class="faq">
+    <details><summary>Что такое STAKEN?</summary><p>Это расширение для браузера, которое помогает управлять ставками и риском во время торговой сессии на Pocket Option: считает сумму ставки, ведёт план и фиксирует результат.</p></details>
+    <details><summary>STAKEN гарантирует прибыль?</summary><p>Нет. Это инструмент управления ставками. Он не прогнозирует рынок, не является финансовой рекомендацией и не гарантирует результат. Все сделки совершаете вы.</p></details>
+    <details><summary>В каких браузерах работает?</summary><p>В Chrome и Edge. Интерфейс доступен на русском и английском языках.</p></details>
+    <details><summary>Можно попробовать до оплаты?</summary><p>Да. После установки даётся 5 минут бесплатно, а тестовый режим позволяет прогнать план без риска.</p></details>
+    <details><summary>Как получить ключ?</summary><p>Напишите менеджеру в Telegram @staken_manager, выберите тариф, и ключ будет выдан. Там же можно задать вопросы по установке.</p></details>
+    <details><summary>Чем отличаются тарифы?</summary><p>Только сроком. Функции везде одинаковые. Тариф «Навсегда» — бессрочная лицензия с будущими обновлениями.</p></details>
+    <details><summary>Что если выплата актива изменится во время сессии?</summary><p>Панель пересчитает оставшиеся ставки, чтобы план оставался корректным.</p></details>
+  </div>
+</div></section>
+
+<!-- FINAL -->
+<section class="final"><div class="box">
+  <h2 class="d">Начните сессию с планом, а не с надеждой</h2>
+  <p>Установите STAKEN, получите 5 минут бесплатно и убедитесь сами. Ключ и помощь с установкой ждут в Telegram.</p>
+  <a class="btn go lg" href="https://t.me/staken_manager"><svg><use href="#i-tg"/></svg>Получить ключ в Telegram</a>
+</div></section>
+</main>
+
+<footer class="foot"><div class="w">
+  <div class="r"><span class="logo"><span class="mark"><i></i><i></i><i></i></span>STAKEN</span><a href="https://t.me/staken_manager">Telegram: @staken_manager</a></div>
+  <span>Торговля сопряжена с высоким риском, и вы можете потерять все вложенные средства, в том числе при использовании STAKEN. STAKEN — инструмент управления ставками: он не является финансовой рекомендацией, не прогнозирует рынок и не гарантирует результат. Все сделки совершаете вы и несёте полную ответственность за их исход. Проект не связан с Pocket Option. © 2026 STAKEN</span>
+</div></footer>
+
+<div class="sticky" id="sticky"><div><b>STAKEN</b>5 минут бесплатно</div><a class="btn go" href="https://t.me/staken_manager">Получить ключ</a></div>
+
+<script>
+(function(){
+  // Демо-панель
+  var P=[{s:'$1.20',bal:268.95,goal:272.76,f:'0.8%',base:1.2},{s:'$3.34',bal:268.95,goal:272.76,f:'2.4%',base:3.34},{s:'$7.80',bal:268.95,goal:276.40,f:'6.1%',base:7.8}];
+  var cur=1,step=0,pl=0,busy=false,slots=document.querySelectorAll('#slots i'),
+      $=function(i){return document.getElementById(i)};
+  function fmt(n){return (n<0?'−':'+')+'$'+Math.abs(n).toFixed(2)}
+  function render(){
+    var p=P[cur],mult=Math.pow(2,step);
+    $('stake').textContent='$'+(p.base*mult).toFixed(2);
+    $('bal').textContent='$'+(p.bal+pl).toFixed(2);
+    $('goal').textContent='$'+p.goal.toFixed(2);
+    $('fail').textContent=p.f;
+    var el=$('pl');el.textContent=fmt(pl);el.className=pl<0?'r':'g';
+    slots.forEach(function(s,i){s.className=i<step?(s.dataset.r||'loss'):i===step?'on':''});
+  }
+  function reset(){step=0;pl=0;slots.forEach(function(s){delete s.dataset.r});render()}
+  document.querySelectorAll('#pre button').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#pre button').forEach(function(x){x.classList.remove('on')});
+      b.classList.add('on');cur=+b.dataset.p;reset();
+    });
+  });
+  function trade(win){
+    var p=P[cur],amt=p.base*Math.pow(2,step);
+    if(busy)return;
+    if(win){
+      pl+=amt*0.92;slots[step].dataset.r='win';slots[step].className='win';
+      $('fail').textContent='—';var el=$('pl');el.textContent=fmt(pl);el.className='g';
+      $('bal').textContent='$'+(p.bal+pl).toFixed(2);
+      $('mode').textContent='СТОП';busy=true;
+      setTimeout(function(){$('mode').textContent='REAL';busy=false;reset()},1800);
+    }else{
+      pl-=amt;slots[step].dataset.r='loss';step=Math.min(step+1,6);render();
+    }
+  }
+  $('bu').addEventListener('click',function(){trade(Math.random()<.5)});
+  $('bs').addEventListener('click',function(){trade(Math.random()<.5)});
+  render();
+
+  // Появление блоков
+  var io='IntersectionObserver' in window?new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target)}})},{threshold:.12}):null;
+  document.querySelectorAll('.rv').forEach(function(n,i){n.style.transitionDelay=(i%4)*70+'ms';io?io.observe(n):n.classList.add('in')});
+
+  // Липкая кнопка на телефонах
+  var st=$('sticky');
+  function onS(){st.classList.toggle('show',window.scrollY>520)}
+  window.addEventListener('scroll',onS,{passive:true});onS();
+})();
+</script>
+
+<style>
+  /* Дополнительный график STAKEN */
+  .chart .growth-area {
+      height: 145px;
+      min-height: 145px;
+      width: 100%;
+      position: relative;
+      margin-top: 8px;
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+  }
+  
+  .chart .growth-area canvas {
+      width: 100% !important;
+      height: 100% !important;
+  }
+  
+  .chart svg {
+      flex: none !important;
+      height: 210px !important;
+      margin-top: 10px;
+  }
+  
+  .growth-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--mut);
+      font-size: 10px;
+      font-weight: 700;
+      margin-top: 8px;
+  }
+  
+  .growth-heading b {
+      color: var(--g);
+      font-size: 12px;
+  }
+  </style>
+  
+  <script>
+  (function () {
+      const chartBox = document.querySelector('.chart');
+      if (!chartBox) return;
+  
+      const svg = chartBox.querySelector('svg');
+      if (!svg) return;
+  
+      const area = document.createElement('div');
+      area.innerHTML = `
+          <div class="growth-heading">
+              <span>РОСТ КАПИТАЛА</span>
+              <b id="growthBalance">$268.95</b>
+          </div>
+          <div class="growth-area">
+              <canvas id="capitalGrowth"></canvas>
+          </div>
+      `;
+  
+      svg.after(area);
+  
+      function startChart() {
+          if (typeof Chart === 'undefined') return;
+  
+          const ctx = document
+              .getElementById('capitalGrowth')
+              .getContext('2d');
+  
+          const gradient = ctx.createLinearGradient(0, 0, 0, 150);
+          gradient.addColorStop(0, 'rgba(34,197,139,0.30)');
+          gradient.addColorStop(1, 'rgba(34,197,139,0)');
+  
+          const values = [268.95, 269.30, 269.10, 270.00,
+                          269.80, 270.60, 270.30, 271.40];
+  
+          const chart = new Chart(ctx, {
+              type: 'line',
+              data: {
+                  labels: ['1','2','3','4','5','6','7','8'],
+                  datasets: [{
+                      data: values,
+                      borderColor: '#22C58B',
+                      backgroundColor: gradient,
+                      fill: true,
+                      tension: 0.4,
+                      borderWidth: 2.5,
+                      pointRadius: 0,
+                      pointHoverRadius: 5,
+                      pointHoverBackgroundColor: '#34D67F'
+                  }]
+              },
+              options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  animation: { duration: 500 },
+                  interaction: {
+                      intersect: false,
+                      mode: 'index'
+                  },
+                  plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                          backgroundColor: '#101A16',
+                          borderColor: '#22C58B',
+                          borderWidth: 1,
+                          displayColors: false,
+                          callbacks: {
+                              label: c => '$' + c.parsed.y.toFixed(2)
+                          }
+                      }
+                  },
+                  scales: {
+                      x: { display: false },
+                      y: {
+                          position: 'right',
+                          grid: {
+                              color: 'rgba(147,163,155,0.10)'
+                          },
+                          border: { display: false },
+                          ticks: {
+                              color: '#71877e',
+                              font: { size: 9 },
+                              callback: v => '$' + v
+                          }
+                      }
+                  }
+              }
+          });
+  
+          function update() {
+              const balance = document.getElementById('bal');
+              if (!balance) return;
+  
+              const value = parseFloat(
+                  balance.textContent.replace(/[^0-9.-]/g, '')
+              );
+  
+              if (!Number.isFinite(value)) return;
+  
+              values.push(value);
+  
+              if (values.length > 20) values.shift();
+  
+              chart.data.labels = values.map((_, i) => i + 1);
+              chart.data.datasets[0].data = values;
+  
+              document.getElementById('growthBalance')
+                  .textContent = '$' + value.toFixed(2);
+  
+              chart.update();
+          }
+  
+          document.getElementById('bu')
+              ?.addEventListener('click', () => setTimeout(update, 50));
+  
+          document.getElementById('bs')
+              ?.addEventListener('click', () => setTimeout(update, 50));
+      }
+  
+      if (window.Chart) {
+          startChart();
+      } else {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+          script.onload = startChart;
+          document.head.appendChild(script);
+      }
+  })();
+  </script>
+  
+</body>
+</html>
