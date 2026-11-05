@@ -2,80 +2,312 @@
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><title>STAKEN — админка</title>
 <style>
-:root{--bg:#070B0A;--surf:#0F1614;--line:#1E2A26;--txt:#EAF2EE;--mut:#93A39B;--g:#22C58B;--red:#EF5360;--gold:#F2C265}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;padding:24px}
-.wrap{max-width:1100px;margin:0 auto}h1{font-size:22px;margin:0 0 18px}h2{font-size:16px;margin:0 0 12px}
-.card{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+:root{--bg:#070B0A;--surf:#0F1614;--surf2:#0B1110;--line:#1E2A26;--line2:#2A3B35;--txt:#EAF2EE;--mut:#93A39B;--g:#22C58B;--red:#EF5360;--gold:#F2C265}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;padding:20px}
+.wrap{max-width:1180px;margin:0 auto}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+h1{font-size:22px;margin:0}h2{font-size:16px;margin:0 0 12px}h3{font-size:14px;margin:16px 0 8px;color:var(--mut);font-weight:600}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-.stat{background:#0B1110;border:1px solid var(--line);border-radius:12px;padding:14px}.stat b{display:block;font-size:26px}.stat span{color:var(--mut);font-size:13px}
-input,textarea{width:100%;background:#0B1110;border:1px solid #2A3B35;border-radius:10px;color:var(--txt);padding:10px 12px;font:inherit}
-textarea{min-height:110px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
-button{background:var(--g);color:#04130C;border:0;border-radius:10px;padding:10px 18px;font:700 14px system-ui;cursor:pointer}
+.stat{background:var(--surf2);border:1px solid var(--line);border-radius:12px;padding:14px}.stat b{display:block;font-size:26px}.stat span{color:var(--mut);font-size:13px}
+input,textarea,select{background:var(--surf2);border:1px solid var(--line2);border-radius:10px;color:var(--txt);padding:9px 12px;font:inherit;max-width:100%}
+input[type=checkbox]{width:16px;height:16px;padding:0;accent-color:var(--g)}
+textarea{width:100%;min-height:100px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+button{background:var(--g);color:#04130C;border:0;border-radius:10px;padding:9px 16px;font:700 14px system-ui;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
 button.sec{background:transparent;color:var(--g);border:1px solid var(--g)}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>input{flex:1;min-width:200px}
-table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;word-break:break-all}
-th{color:var(--mut);font-weight:600}.scroll{overflow-x:auto}
-select{background:#0B1110;border:1px solid #2A3B35;border-radius:10px;color:var(--txt);padding:10px 12px;font:inherit}
-.row>#cnt{min-width:80px;flex:0 0 90px}td button{padding:5px 9px;font-size:12px;margin:2px}td code{word-break:keep-all}
-.ok{color:var(--g)}.bad{color:var(--red)}.warn{color:var(--gold)}.msg{margin-top:10px;min-height:20px}
-code{font-family:ui-monospace,Menlo,Consolas,monospace}
+button.dng{background:transparent;color:var(--red);border:1px solid var(--red)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row.grow>input{flex:1;min-width:180px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.tab{background:transparent;color:var(--mut);border:1px solid transparent;padding:8px 14px}
+.tab.on{background:var(--surf);color:var(--g);border-color:var(--line2)}
+.tab .n{background:var(--line);color:var(--txt);border-radius:20px;padding:0 7px;font-size:12px;margin-left:6px}
+.pane{display:none}.pane.on{display:block}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--mut);font-weight:600;white-space:nowrap}
+.scroll{overflow-x:auto}
+td button{padding:4px 9px;font-size:12px;margin:2px}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;word-break:keep-all}
+.ok{color:var(--g)}.bad{color:var(--red)}.warn{color:var(--gold)}.mut{color:var(--mut)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.chip{background:var(--surf2);border:1px solid var(--line2);border-radius:20px;padding:4px 12px;font-size:13px;cursor:pointer;color:var(--txt)}
+.chip.on{border-color:var(--g);color:var(--g)}
+.chip.red{border-color:var(--red);color:var(--red)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
+.hint{color:var(--mut);font-size:13px;margin:0 0 10px}
+.res{margin-top:10px;white-space:pre-line;user-select:all}
+.pager{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:10px;color:var(--mut);font-size:13px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#12201B;border:1px solid var(--g);color:var(--txt);padding:10px 18px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9;max-width:90vw}
+.toast.show{opacity:1}.toast.err{border-color:var(--red)}
+@media(max-width:640px){body{padding:12px}}
 </style></head><body><div class="wrap">
-<h1>STAKEN · админка</h1>
-<div class="card"><h2>Вход</h2><div class="row"><input id="tok" type="password" placeholder="ADMIN_TOKEN"><button id="login">Войти</button></div><div class="msg" id="m0"></div></div>
+
+<div class="top"><h1>STAKEN · админка</h1><div class="row" id="topbtn" style="display:none"><button class="sec" id="refresh">Обновить</button><button class="sec" id="logout">Выйти</button></div></div>
+
+<div class="card" id="loginCard"><h2>Вход</h2><div class="row grow"><input id="tok" type="password" placeholder="ADMIN_TOKEN"><button id="login">Войти</button></div><div id="m0" style="margin-top:10px"></div></div>
+
 <div id="app" style="display:none">
-  <div class="card"><h2>Сводка</h2><div class="grid" id="stats"></div><div class="row" style="margin-top:12px"><button class="sec" id="refresh">Обновить</button></div></div>
-  <div class="card"><h2>Добавить ключи в пул</h2>
-    <p style="color:var(--mut);margin-top:0">Необязательно: сервер сам создаёт новые ключи, когда пул пуст. Здесь можно добавить готовые ключи (по одному в строке), они выдаются в первую очередь.</p>
-    <textarea id="keys" placeholder="ключ1&#10;ключ2&#10;ключ3"></textarea>
-    <div class="row" style="margin-top:10px"><select id="daysA"><option value="">срок как у автоключей</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="0">навсегда</option></select><button id="addk">Добавить в пул</button></div><div class="msg" id="m1"></div></div>
-  <div class="card"><h2>Создать ключи (себе, тестеру, покупателю за $67)</h2>
-    <div class="row"><input id="note" placeholder="Кому/пометка, например: я, тест, @username"><input id="cnt" type="number" min="1" max="200" value="1" style="max-width:90px"><select id="daysG"><option value="">срок как у автоключей</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="0">навсегда</option></select><button id="take">Создать</button></div>
-    <div class="msg" id="m2"></div></div>
-  <div class="card"><h2>Выдать ключ по click_id (если постбэк задержался)</h2>
-    <div class="row"><input id="cid" placeholder="click_id (32 символа, берётся из таблицы ниже)"><button id="grant">Выдать</button></div>
-    <div class="msg" id="m3"></div></div>
-  <div class="card"><h2>Клики и статусы</h2><div class="scroll"><table id="tc"></table></div></div>
-  <div class="card"><h2>Выданные ключи</h2><div class="scroll"><table id="tk"></table></div></div>
-  <div class="card"><h2>Последние постбэки (для отладки)</h2><div class="scroll"><table id="te"></table></div></div>
-</div></div>
+  <div id="warn"></div>
+  <div class="card"><div class="grid" id="stats"></div></div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-t="pool">Пул ключей<span class="n" id="nPool">0</span></button>
+    <button class="tab" data-t="keys">Выданные ключи<span class="n" id="nKeys">0</span></button>
+    <button class="tab" data-t="make">Создать / выдать</button>
+    <button class="tab" data-t="clicks">Клики</button>
+    <button class="tab" data-t="events">Постбэки</button>
+  </div>
+
+  <div class="pane on" id="p-pool">
+    <div class="card">
+      <h2>Пул ключей</h2>
+      <p class="hint">Пул это готовые ключи, которые ждут клиентов: после депозита сервер берёт первый ключ из пула, а если пул пуст, создаёт новый сам. Выданные клиентам ключи здесь не показываются и из пула не удаляются.</p>
+      <div class="chips" id="poolChips"></div>
+      <div class="bar">
+        <input id="pq" placeholder="Поиск по ключу" style="min-width:200px">
+        <select id="pterm"><option value="all">любой срок</option></select>
+        <label class="row" style="gap:6px"><input type="checkbox" id="pbad"> только неверный формат</label>
+      </div>
+      <div class="bar" id="bulk">
+        <label class="row" style="gap:6px"><input type="checkbox" id="pall"> выбрать все на странице</label>
+        <span class="mut" id="pSel">выбрано: 0</span>
+        <button class="sec" id="bCopy">Копировать</button>
+        <button class="sec" id="bTerm">Изменить срок</button>
+        <button class="dng" id="bDel">Удалить выбранные</button>
+      </div>
+      <div class="scroll"><table id="tp"></table></div>
+      <div class="pager"><button class="sec" id="pPrev">←</button><span id="pInfo"></span><button class="sec" id="pNext">→</button></div>
+    </div>
+
+    <div class="card">
+      <h2>Пополнить пул</h2>
+      <h3>Создать новые ключи автоматически</h3>
+      <div class="row">
+        <input id="gcnt" type="number" min="1" max="500" value="10" style="width:90px">
+        <select id="gdays"><option value="">срок как у автоключей</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="90">90 дней</option><option value="0">навсегда</option></select>
+        <input id="gnote" placeholder="Пометка (необязательно)" style="flex:1;min-width:160px">
+        <button id="gen">Создать в пул</button>
+      </div>
+      <div class="res" id="mg"></div>
+      <h3>Или добавить свои готовые ключи (по одному в строке)</h3>
+      <textarea id="keys" placeholder="PP-XXXX-XXXX-XXXX-XXXX&#10;PP-XXXX-XXXX-XXXX-XXXX"></textarea>
+      <div class="row" style="margin-top:10px"><select id="daysA"><option value="">срок как у автоключей</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="90">90 дней</option><option value="0">навсегда</option></select><button id="addk">Добавить в пул</button></div>
+      <div class="res" id="m1"></div>
+    </div>
+
+    <div class="card">
+      <h2>Быстрая уборка</h2>
+      <p class="hint">Расширение 1.4.0 принимает только ключи формата <code>PP-XXXX-XXXX-XXXX-XXXX</code>. Ключи старого формата в пуле клиенту не помогут: расширение их отклонит.</p>
+      <div class="row"><button class="dng" id="delBad">Удалить из пула ключи неверного формата</button><button class="dng" id="delAll">Очистить весь пул</button><button class="sec" id="expAll">Скопировать весь пул</button></div>
+    </div>
+  </div>
+
+  <div class="pane" id="p-keys">
+    <div class="card">
+      <h2>Выданные ключи</h2>
+      <div class="bar">
+        <input id="kq" placeholder="Поиск по ключу или пометке" style="min-width:220px">
+        <select id="kst"><option value="">все статусы</option><option value="active">активные</option><option value="new">не активированы</option><option value="blocked">заблокированные</option><option value="expired">истёк срок</option></select>
+        <span class="mut" id="kInfo"></span>
+      </div>
+      <div class="scroll"><table id="tk"></table></div>
+    </div>
+  </div>
+
+  <div class="pane" id="p-make">
+    <div class="card"><h2>Создать ключи себе, тестеру или покупателю</h2>
+      <p class="hint">Эти ключи сразу считаются выданными (не уходят в пул). Они появятся во вкладке «Выданные ключи».</p>
+      <div class="row">
+        <input id="note" placeholder="Кому / пометка, например: я, тест, @username" style="flex:1;min-width:200px">
+        <input id="cnt" type="number" min="1" max="200" value="1" style="width:90px">
+        <select id="daysG"><option value="">срок как у автоключей</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="90">90 дней</option><option value="0">навсегда</option></select>
+        <button id="take">Создать</button>
+      </div><div class="res" id="m2"></div></div>
+    <div class="card"><h2>Выдать ключ по click_id (если постбэк задержался)</h2>
+      <div class="row grow"><input id="cid" placeholder="click_id (32 символа, берётся из вкладки «Клики»)"><button id="grant">Выдать</button></div>
+      <div class="res" id="m3"></div></div>
+  </div>
+
+  <div class="pane" id="p-clicks">
+    <div class="card"><h2>Клики и статусы</h2>
+      <div class="bar"><input id="cq" placeholder="Поиск по click_id, ID аккаунта или ключу" style="min-width:260px"></div>
+      <div class="scroll"><table id="tc"></table></div></div>
+  </div>
+
+  <div class="pane" id="p-events">
+    <div class="card"><h2>Последние постбэки (для отладки)</h2><div class="scroll"><table id="te"></table></div></div>
+  </div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
 <script>
 var $=function(i){return document.getElementById(i)};
 var T=sessionStorage.getItem("adm")||"";if(T)$("tok").value=T;
+var D=null,PG={off:0,lim:100,items:[],sel:{},matched:0,total:0,bad:0,auto:0};
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function dt(t){return t?new Date(t*1000).toLocaleString("ru-RU"):"—"}
+function dtm(t){return t?new Date(t).toLocaleString("ru-RU"):"—"}
+function dv(id){var v=$(id).value;return v===""?undefined:+v}
+function toast(m,err){var t=$("toast");t.textContent=m;t.className="toast show"+(err?" err":"");clearTimeout(toast.t);toast.t=setTimeout(function(){t.className="toast"},2600)}
 async function api(path,body){
   var o={headers:{authorization:"Bearer "+T}};
   if(body){o.method="POST";o.headers["content-type"]="application/json";o.body=JSON.stringify(body)}
   var r=await fetch("/api/admin/"+path,o);var d=await r.json().catch(function(){return{}});d._s=r.status;return d}
 function table(el,head,rows){$(el).innerHTML="<tr>"+head.map(function(h){return"<th>"+h+"</th>"}).join("")+"</tr>"+rows.map(function(r){return"<tr>"+r.map(function(c){return"<td>"+c+"</td>"}).join("")+"</tr>"}).join("")}
+function fb(text){var a=document.createElement("textarea");a.value=text;document.body.appendChild(a);a.select();var ok=false;try{ok=document.execCommand("copy")}catch(e){}a.remove();return ok}
+function copy(text){
+  if(navigator.clipboard&&navigator.clipboard.writeText){return navigator.clipboard.writeText(text).then(function(){return true},function(){return fb(text)})}
+  return Promise.resolve(fb(text))}
+function termLabel(days,auto){if(days==null)return"как у авто ("+(auto?auto+" дн.":"навсегда")+")";return days?days+" дн.":"навсегда"}
+
+$("tabs").onclick=function(e){var b=e.target.closest(".tab");if(!b)return;
+  [].forEach.call(document.querySelectorAll(".tab"),function(x){x.classList.toggle("on",x===b)});
+  [].forEach.call(document.querySelectorAll(".pane"),function(x){x.classList.toggle("on",x.id==="p-"+b.getAttribute("data-t"))})};
+
 async function load(){
   var d=await api("overview");
-  if(d._s===401){$("m0").innerHTML='<span class="bad">Неверный токен</span>';$("app").style.display="none";return}
+  if(d._s===401){$("m0").innerHTML='<span class="bad">Неверный токен</span>';$("app").style.display="none";$("topbtn").style.display="none";$("loginCard").style.display="";return}
   if(d._s!==200){$("m0").innerHTML='<span class="bad">Ошибка: '+esc(d.detail||d.error||d._s)+'</span>';return}
-  $("m0").innerHTML='<span class="ok">Вход выполнен</span>';$("app").style.display="";
-  var s=d.stats;$("stats").innerHTML=[["Ключей в пуле",s.free],["Выдано ключей",s.used],["Регистраций",s.regs],["Депозитов (FTD)",s.ftds],["Ключей по клику",s.issued],["Активаций (устройств)",s.activations],["Макс. устройств на ключ",d.maxDevices],["Мин. депозит","$"+d.min]]
+  D=d;$("loginCard").style.display="none";$("topbtn").style.display="";$("app").style.display="";
+  var s=d.stats;
+  $("stats").innerHTML=[["Ключей в пуле",s.free],["Выдано ключей",s.used],["Регистраций",s.regs],["Депозитов (FTD)",s.ftds],["Ключей по клику",s.issued],["Активаций (устройств)",s.activations],["Макс. устройств на ключ",d.maxDevices],["Мин. депозит","$"+d.min]]
     .map(function(x){return'<div class="stat"><b>'+esc(x[1])+'</b><span>'+x[0]+'</span></div>'}).join("");
-  $("m0").innerHTML+=d.signing?"":' <span class="bad">Не задан секрет LICENSE_PRIVATE_JWK: расширение не сможет активировать ключи (см. инструкцию, шаг 3.4)</span>';
-  window.AUTO=d.autoDays;window.MAXD=d.maxDevices;
-  table("tc",["click_id","Регистрация","Депозит","Сумма","trader_id (от PO)","ID (ввёл клиент)","Ключ"],d.clicks.map(function(c){return["<code>"+esc(c.click_id)+"</code>",dt(c.reg_at),dt(c.ftd_at),c.dep?"$"+c.dep:"—",esc(c.trader_id||"—"),esc(c.uid||"—"),c.key?'<span class="ok">'+esc(c.key)+"</span>":"—"]}));
-  table("tk",["Ключ","Кому","Когда","Срок","Устройств","Статус",""],d.keys.map(function(k){
-    var plan=k.days==null?window.AUTO:k.days;
-    var term=k.activated_at?(k.until?"до "+new Date(k.until).toLocaleString("ru-RU"):"навсегда"):"не активирован ("+(plan?plan+" дн.":"навсегда")+")";
-    var st=k.revoked?'<span class="bad">заблокирован</span>':(k.activated_at?'<span class="ok">активен</span>':"—");
-    var kk=esc(k.key);
-    return["<code>"+kk+"</code>",esc(k.note==="auto"?"авто · "+k.claimed_by.slice(0,8)+"…":k.note),dt(k.claimed_at),term,k.devs+" / "+window.MAXD,st,
-      '<button class="sec" data-a="reset" data-k="'+kk+'">Сбросить устройства</button> <button class="sec" data-a="rev" data-r="'+(k.revoked?0:1)+'" data-k="'+kk+'">'+(k.revoked?"Разблокировать":"Заблокировать")+"</button>"]}));
+  $("warn").innerHTML=d.signing?"":'<div class="card" style="border-color:var(--red)"><b class="bad">Не задан секрет LICENSE_PRIVATE_JWK.</b> Расширение не сможет активировать ключи (Cloudflare → Worker → Settings → Variables and Secrets).</div>';
+  $("nKeys").textContent=d.keys.length;
+  renderKeys();renderClicks();
   table("te",["Время","Событие","click_id","trader_id","Сумма","Результат"],d.events.map(function(e){return[dt(e.ts),esc(e.event),"<code>"+esc(e.click_id)+"</code>",esc(e.trader_id||"—"),e.dep||"—",esc(e.result)]}));
+  await loadPool();
 }
-$("login").onclick=function(){T=$("tok").value.trim();sessionStorage.setItem("adm",T);load()};
-$("refresh").onclick=load;
-function dv(id){var v=$(id).value;return v===""?undefined:+v}
-$("addk").onclick=async function(){var l=$("keys").value.split(/\r?\n/);var d=await api("keys/add",{keys:l,days:dv("daysA")});$("m1").innerHTML=d.ok?'<span class="ok">Отправлено: '+d.submitted+' (дубликаты пропущены)</span>':'<span class="bad">Ошибка</span>';if(d.ok){$("keys").value="";load()}};
-$("take").onclick=async function(){var d=await api("keys/generate",{note:$("note").value||"manual",count:+$("cnt").value||1,days:dv("daysG")});$("m2").innerHTML=d.ok?'Ключи: <b class="ok" style="user-select:all;white-space:pre-line">'+d.keys.map(esc).join("\n")+"</b>":'<span class="bad">Ошибка: '+esc(d.error||d._s)+"</span>";load()};
-$("tk").onclick=async function(e){var b=e.target.closest("button[data-a]");if(!b)return;var k=b.getAttribute("data-k");
-  if(b.getAttribute("data-a")==="reset"){if(!confirm("Сбросить устройства этого ключа? Клиент сможет активировать его заново."))return;await api("keys/reset",{key:k})}
-  else{var r=b.getAttribute("data-r")==="1";if(r&&!confirm("Заблокировать ключ? Расширение клиента отключится при ближайшей проверке."))return;await api("keys/revoke",{key:k,revoked:r})}
+
+function poolQuery(){
+  var p=new URLSearchParams({limit:PG.lim,offset:PG.off});
+  if($("pq").value.trim())p.set("q",$("pq").value.trim());
+  if($("pterm").value!=="all")p.set("term",$("pterm").value);
+  if($("pbad").checked)p.set("bad","1");
+  return p.toString()}
+async function loadPool(){
+  var d=await api("pool?"+poolQuery());
+  if(d._s!==200){toast("Не удалось загрузить пул",1);return}
+  PG.items=d.items;PG.matched=d.matched;PG.total=d.total;PG.bad=d.bad;PG.auto=d.autoDays;
+  $("nPool").textContent=d.total;
+  var cur=$("pterm").value,opts='<option value="all">любой срок</option>';
+  var names=Object.keys(d.byTerm).sort(function(a,b){return a==="auto"?-1:b==="auto"?1:(+a)-(+b)});
+  names.forEach(function(k){var lab=k==="auto"?"как у авто ("+(d.autoDays?d.autoDays+" дн.":"навсегда")+")":(k==="0"?"навсегда":k+" дн.");opts+='<option value="'+k+'">'+lab+' ('+d.byTerm[k]+')</option>'});
+  $("pterm").innerHTML=opts;$("pterm").value=names.indexOf(cur)>=0?cur:"all";
+  var ch='<span class="chip'+($("pterm").value==="all"&&!$("pbad").checked?" on":"")+'" data-f="all">Всего: '+d.total+'</span>';
+  names.forEach(function(k){var lab=k==="auto"?"как у авто":(k==="0"?"навсегда":k+" дн.");ch+='<span class="chip'+($("pterm").value===k?" on":"")+'" data-f="'+k+'">'+lab+': '+d.byTerm[k]+'</span>'});
+  if(d.bad)ch+='<span class="chip red'+($("pbad").checked?" on":"")+'" data-f="bad">Неверный формат: '+d.bad+'</span>';
+  $("poolChips").innerHTML=ch;
+  renderPool();
+}
+function renderPool(){
+  var rows=PG.items.map(function(r){
+    var chk='<input type="checkbox" data-k="'+esc(r.key)+'"'+(PG.sel[r.key]?" checked":"")+'>';
+    var fmt=r.valid?'<span class="ok">ок</span>':'<span class="bad" title="Расширение 1.4.0 не примет такой ключ">неверный формат</span>';
+    return[chk,"<code>"+esc(r.key)+"</code>",dt(r.added_at),esc(termLabel(r.days,PG.auto)),esc(r.note||"—"),fmt,
+      '<button class="sec" data-a="pcopy" data-k="'+esc(r.key)+'">Копировать</button><button class="sec" data-a="pterm" data-k="'+esc(r.key)+'">Срок</button><button class="dng" data-a="pdel" data-k="'+esc(r.key)+'">Удалить</button>']});
+  table("tp",["","Ключ","Добавлен","Срок","Пометка","Формат",""],rows);
+  if(!rows.length)$("tp").innerHTML+='<tr><td colspan="7" class="mut">Ничего не найдено. Если пул пуст, это нормально: сервер создаёт ключи сам.</td></tr>';
+  var a=PG.matched?PG.off+1:0,b=Math.min(PG.off+PG.lim,PG.matched);
+  $("pInfo").textContent=a+"–"+b+" из "+PG.matched;
+  $("pPrev").disabled=PG.off<=0;$("pNext").disabled=PG.off+PG.lim>=PG.matched;
+  selCount();
+}
+function selKeys(){return Object.keys(PG.sel).filter(function(k){return PG.sel[k]})}
+function selCount(){$("pSel").textContent="выбрано: "+selKeys().length;
+  $("pall").checked=!!(PG.items.length&&PG.items.every(function(r){return PG.sel[r.key]}))}
+function termAsk(){
+  var v=prompt("Срок в днях.\n0 = навсегда\nпусто = как у автоключей (сейчас "+(D&&D.autoDays?D.autoDays+" дн.":"навсегда")+")","");
+  if(v===null)return null;v=v.trim();if(v==="")return{days:""};
+  var n=parseInt(v,10);if(!isFinite(n)||n<0||n>3650){toast("Введите число от 0 до 3650",1);return null}
+  return{days:n}}
+var pTimer;
+$("pq").oninput=function(){clearTimeout(pTimer);pTimer=setTimeout(function(){PG.off=0;loadPool()},250)};
+$("pterm").onchange=function(){PG.off=0;loadPool()};
+$("pbad").onchange=function(){PG.off=0;loadPool()};
+$("pPrev").onclick=function(){PG.off=Math.max(0,PG.off-PG.lim);loadPool()};
+$("pNext").onclick=function(){PG.off+=PG.lim;loadPool()};
+$("poolChips").onclick=function(e){var c=e.target.closest(".chip");if(!c)return;var f=c.getAttribute("data-f");
+  $("pbad").checked=(f==="bad");$("pterm").value=(f==="bad"||f==="all")?"all":f;PG.off=0;loadPool()};
+$("pall").onchange=function(){var on=$("pall").checked;PG.items.forEach(function(r){PG.sel[r.key]=on});renderPool()};
+$("tp").onchange=function(e){var c=e.target;if(c.type==="checkbox"&&c.getAttribute("data-k")){PG.sel[c.getAttribute("data-k")]=c.checked;selCount()}};
+$("tp").onclick=async function(e){var b=e.target.closest("button[data-a]");if(!b)return;var k=b.getAttribute("data-k"),a=b.getAttribute("data-a");
+  if(a==="pcopy"){toast(await copy(k)?"Ключ скопирован":"Не удалось скопировать",0)}
+  else if(a==="pdel"){if(!confirm("Удалить ключ из пула?\n"+k))return;var d=await api("pool/delete",{keys:[k]});toast(d.ok?"Удалено: "+d.deleted:"Ошибка",!d.ok);delete PG.sel[k];load()}
+  else if(a==="pterm"){var t=termAsk();if(!t)return;var d2=await api("pool/update",{keys:[k],days:t.days});toast(d2.ok?"Срок изменён":"Ошибка",!d2.ok);loadPool()}};
+$("bCopy").onclick=async function(){var l=selKeys();if(!l.length){toast("Сначала отметьте ключи",1);return}toast(await copy(l.join("\n"))?"Скопировано ключей: "+l.length:"Не удалось скопировать",0)};
+$("bDel").onclick=async function(){var l=selKeys();if(!l.length){toast("Сначала отметьте ключи",1);return}
+  if(!confirm("Удалить из пула выбранные ключи ("+l.length+")? Это нельзя отменить."))return;
+  var d=await api("pool/delete",{keys:l});toast(d.ok?"Удалено: "+d.deleted:"Ошибка",!d.ok);PG.sel={};load()};
+$("bTerm").onclick=async function(){var l=selKeys();if(!l.length){toast("Сначала отметьте ключи",1);return}
+  var t=termAsk();if(!t)return;var d=await api("pool/update",{keys:l,days:t.days});toast(d.ok?"Срок изменён у "+l.length+" ключей":"Ошибка",!d.ok);loadPool()};
+$("delBad").onclick=async function(){if(!PG.bad){toast("Ключей неверного формата нет",0);return}
+  if(!confirm("Удалить из пула все ключи неверного формата ("+PG.bad+")?"))return;
+  var d=await api("pool/delete",{invalid:true});toast(d.ok?"Удалено: "+d.deleted:"Ошибка",!d.ok);PG.sel={};load()};
+$("delAll").onclick=async function(){if(!PG.total){toast("Пул уже пуст",0);return}
+  if(!confirm("Удалить ВСЕ ключи из пула ("+PG.total+")? Выданные клиентам ключи не затрагиваются. Это нельзя отменить."))return;
+  if(prompt("Для подтверждения введите слово: УДАЛИТЬ")!=="УДАЛИТЬ"){toast("Отменено",0);return}
+  var d=await api("pool/delete",{all:true});toast(d.ok?"Удалено: "+d.deleted:"Ошибка",!d.ok);PG.sel={};load()};
+$("expAll").onclick=async function(){var all=[],off=0;
+  while(true){var d=await api("pool?limit=500&offset="+off);if(d._s!==200)break;all=all.concat(d.items.map(function(r){return r.key}));off+=500;if(off>=d.matched)break}
+  if(!all.length){toast("Пул пуст",0);return}toast(await copy(all.join("\n"))?"Скопировано ключей: "+all.length:"Не удалось скопировать",0)};
+$("gen").onclick=async function(){var d=await api("pool/generate",{count:+$("gcnt").value||1,days:dv("gdays"),note:$("gnote").value});
+  $("mg").innerHTML=d.ok?'<span class="ok">Создано ключей: '+d.keys.length+'</span>':'<span class="bad">Ошибка: '+esc(d.error||d._s)+'</span>';
+  if(d.ok){toast("Ключи добавлены в пул");PG.off=0;load()}};
+$("addk").onclick=async function(){var l=$("keys").value.split(/\r?\n/);var d=await api("keys/add",{keys:l,days:dv("daysA")});
+  $("m1").innerHTML=d.ok?'<span class="ok">Отправлено: '+d.submitted+' (дубликаты пропущены)</span>':'<span class="bad">Ошибка</span>';
+  if(d.ok){$("keys").value="";PG.off=0;load()}};
+
+function keyState(k){var t=Date.now();
+  if(k.revoked)return"blocked";if(!k.activated_at)return"new";if(k.until&&k.until<=t)return"expired";return"active"}
+function renderKeys(){
+  var q=$("kq").value.trim().toLowerCase(),st=$("kst").value;
+  var list=D.keys.filter(function(k){
+    if(st&&keyState(k)!==st)return false;
+    if(q){var hay=(k.key+" "+(k.note||"")+" "+(k.claimed_by||"")).toLowerCase();if(hay.indexOf(q)<0&&hay.replace(/-/g,"").indexOf(q.replace(/-/g,""))<0)return false}
+    return true});
+  $("kInfo").textContent="показано "+list.length+" из "+D.keys.length;
+  table("tk",["Ключ","Кому","Когда","Срок","Устр.","Статус",""],list.map(function(k){
+    var plan=k.days==null?D.autoDays:k.days,s=keyState(k);
+    var term=k.activated_at?(k.until?"до "+dtm(k.until):"навсегда"):"не активирован ("+(plan?plan+" дн.":"навсегда")+")";
+    var stt=s==="blocked"?'<span class="bad">заблокирован</span>':s==="active"?'<span class="ok">активен</span>':s==="expired"?'<span class="warn">истёк</span>':"—";
+    var kk=esc(k.key);
+    var who=k.note==="auto"?"авто · "+esc((k.claimed_by||"").slice(0,8))+"…":esc(k.note||"—");
+    var ext=(k.activated_at&&!k.until)?"":'<button class="sec" data-a="ext" data-k="'+kk+'" data-act="'+(k.activated_at?1:0)+'">'+(k.activated_at?"Продлить":"Срок")+'</button>';
+    return["<code>"+kk+"</code>",who,dt(k.claimed_at),term,k.devs+" / "+D.maxDevices,stt,
+      '<button class="sec" data-a="kcopy" data-k="'+kk+'">Копировать</button>'+ext+'<button class="sec" data-a="note" data-k="'+kk+'" data-n="'+esc(k.note||"")+'">Пометка</button><button class="sec" data-a="reset" data-k="'+kk+'">Сбросить устройства</button><button class="'+(k.revoked?"sec":"dng")+'" data-a="rev" data-r="'+(k.revoked?0:1)+'" data-k="'+kk+'">'+(k.revoked?"Разблокировать":"Заблокировать")+"</button>"]}));
+}
+$("kq").oninput=renderKeys;$("kst").onchange=renderKeys;
+$("tk").onclick=async function(e){var b=e.target.closest("button[data-a]");if(!b)return;var k=b.getAttribute("data-k"),a=b.getAttribute("data-a");
+  if(a==="kcopy"){toast(await copy(k)?"Ключ скопирован":"Не удалось скопировать",0);return}
+  if(a==="reset"){if(!confirm("Сбросить устройства этого ключа? Клиент сможет активировать его заново."))return;await api("keys/reset",{key:k});toast("Устройства сброшены")}
+  else if(a==="rev"){var r=b.getAttribute("data-r")==="1";if(r&&!confirm("Заблокировать ключ? Расширение клиента отключится при ближайшей проверке (в течение нескольких минут)."))return;await api("keys/revoke",{key:k,revoked:r});toast(r?"Ключ заблокирован":"Ключ разблокирован")}
+  else if(a==="note"){var n=prompt("Пометка к ключу:",b.getAttribute("data-n")||"");if(n===null)return;await api("keys/note",{key:k,note:n});toast("Пометка сохранена")}
+  else if(a==="ext"){var act=b.getAttribute("data-act")==="1";
+    var v=prompt(act?"На сколько дней продлить? (добавится к текущему сроку)\n0 = сделать бессрочным":"Срок ключа в днях (0 = навсегда). Отсчёт начнётся с активации.","30");if(v===null)return;
+    var n2=parseInt(v,10);if(!isFinite(n2)||n2<0||n2>3650){toast("Введите число от 0 до 3650",1);return}
+    var d=await api("keys/extend",{key:k,days:n2});
+    if(d.ok)toast(d.mode==="life"?"Ключ теперь бессрочный":d.mode==="add"?"Срок продлён до "+dtm(d.until):"Срок изменён");
+    else toast(d.error==="already_lifetime"?"Ключ уже бессрочный":"Ошибка: "+(d.error||d._s),1)}
   load()};
-$("grant").onclick=async function(){var d=await api("keys/grant",{click_id:$("cid").value});$("m3").innerHTML=d.ok?'Ключ: <b class="ok" style="user-select:all">'+esc(d.key)+"</b>"+(d.already?" (уже был выдан)":""):'<span class="bad">Ошибка: '+esc(d.error)+"</span>";load()};
+
+$("take").onclick=async function(){var d=await api("keys/generate",{note:$("note").value||"manual",count:+$("cnt").value||1,days:dv("daysG")});
+  $("m2").innerHTML=d.ok?'Ключи:\n<b class="ok">'+d.keys.map(esc).join("\n")+"</b>":'<span class="bad">Ошибка: '+esc(d.error||d._s)+"</span>";if(d.ok)load()};
+$("grant").onclick=async function(){var d=await api("keys/grant",{click_id:$("cid").value});
+  $("m3").innerHTML=d.ok?'Ключ: <b class="ok">'+esc(d.key)+"</b>"+(d.already?" (уже был выдан)":""):'<span class="bad">Ошибка: '+esc(d.error)+"</span>";if(d.ok)load()};
+
+function renderClicks(){
+  var q=$("cq").value.trim().toLowerCase();
+  var list=D.clicks.filter(function(c){return!q||(c.click_id+" "+(c.trader_id||"")+" "+(c.uid||"")+" "+(c.key||"")).toLowerCase().indexOf(q)>=0});
+  table("tc",["click_id","Регистрация","Депозит","Сумма","trader_id (от PO)","ID (ввёл клиент)","Ключ"],list.map(function(c){return["<code>"+esc(c.click_id)+"</code>",dt(c.reg_at),dt(c.ftd_at),c.dep?"$"+c.dep:"—",esc(c.trader_id||"—"),esc(c.uid||"—"),c.key?'<span class="ok">'+esc(c.key)+"</span>":"—"]}))}
+$("cq").oninput=renderClicks;
+
+$("login").onclick=function(){T=$("tok").value.trim();sessionStorage.setItem("adm",T);load()};
+$("tok").onkeydown=function(e){if(e.key==="Enter")$("login").click()};
+$("refresh").onclick=function(){load().then(function(){toast("Обновлено")})};
+$("logout").onclick=function(){sessionStorage.removeItem("adm");T="";$("tok").value="";$("app").style.display="none";$("topbtn").style.display="none";$("loginCard").style.display="";$("m0").innerHTML=""};
 if(T)load();
 </script></body></html>

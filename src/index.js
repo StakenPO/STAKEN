@@ -355,6 +355,17 @@ async function handleLicense(req, url, env) {
 }
 
 // ---------- Админка ----------
+// Какие ключи пула затронуть: {all:true} весь пул, {invalid:true} только с неверным форматом, иначе {keys:[...]}
+async function poolTargets(env, body) {
+  if (body.all || body.invalid) {
+    const rows = (await env.DB.prepare("SELECT key FROM keys WHERE claimed_by IS NULL").all()).results || [];
+    let list = rows.map((r) => r.key);
+    if (body.invalid && !body.all) list = list.filter((k) => !KEY_RE.test(normKey(k)));
+    return list;
+  }
+  return [...new Set((body.keys || []).map(String))].slice(0, 5000);
+}
+
 async function handleAdmin(req, url, env) {
   if (!env.ADMIN_TOKEN) return json({ error: "ADMIN_TOKEN not set" }, 500);
   const auth = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
@@ -386,13 +397,35 @@ async function handleAdmin(req, url, env) {
       `SELECT k.key AS key, k.claimed_by AS claimed_by, k.claimed_at AS claimed_at, k.note AS note,
               k.days AS days, k.until AS until, k.revoked AS revoked, k.activated_at AS activated_at,
               (SELECT COUNT(*) FROM activations a WHERE a.key=k.key) AS devs
-       FROM keys k WHERE k.claimed_by IS NOT NULL ORDER BY k.claimed_at DESC LIMIT 200`
+       FROM keys k WHERE k.claimed_by IS NOT NULL ORDER BY k.claimed_at DESC LIMIT 500`
     ).all();
     const events = await env.DB.prepare("SELECT * FROM events ORDER BY ts DESC LIMIT 40").all();
     return json({
       min: minDeposit(env), maxDevices: maxDevices(env), autoDays: autoDays(env), signing: !!env.LICENSE_PRIVATE_JWK,
       stats, clicks: clicks.results, keys: keys.results, events: events.results,
     });
+  }
+
+  if (path === "pool" && req.method === "GET") {
+    // Пул: свободные (не выданные) ключи. Фильтры: q (часть ключа), term (all | auto | число дней), bad=1 (только неверный формат)
+    const sp = url.searchParams;
+    const q = normKey(sp.get("q") || "");
+    const term = sp.get("term") || "all";
+    const limit = Math.min(Math.max(parseInt(sp.get("limit"), 10) || 100, 1), 500);
+    const offset = Math.max(parseInt(sp.get("offset"), 10) || 0, 0);
+    const all = (await env.DB.prepare("SELECT key, added_at, days, note, activated_at FROM keys WHERE claimed_by IS NULL ORDER BY added_at, key").all()).results || [];
+    const byTerm = {}; let bad = 0;
+    for (const r of all) {
+      const t = r.days == null ? "auto" : String(r.days);
+      byTerm[t] = (byTerm[t] || 0) + 1;
+      r.valid = KEY_RE.test(normKey(r.key));
+      if (!r.valid) bad++;
+    }
+    let list = all;
+    if (q) list = list.filter((r) => normKey(r.key).includes(q));
+    if (term !== "all") list = list.filter((r) => (r.days == null ? "auto" : String(r.days)) === term);
+    if (sp.get("bad") === "1") list = list.filter((r) => !r.valid);
+    return json({ total: all.length, matched: list.length, bad, byTerm, autoDays: autoDays(env), items: list.slice(offset, offset + limit) });
   }
 
   if (req.method !== "POST") return json({ error: "method" }, 405);
@@ -449,6 +482,90 @@ async function handleAdmin(req, url, env) {
     const key = String(body.key || "");
     await env.DB.prepare("DELETE FROM activations WHERE key=?1").bind(key).run();
     return json({ ok: true });
+  }
+
+  // ---------- Управление пулом ----------
+  if (path === "pool/delete") {
+    // Удалить из пула ключи: {keys:[...]} выбранные, {invalid:true} только с неверным форматом, {all:true} весь пул. Выданные ключи не затрагиваются
+    const list = await poolTargets(env, body);
+    const cnt = async () => (await env.DB.prepare("SELECT COUNT(*) AS n FROM keys WHERE claimed_by IS NULL").first()).n;
+    const before = await cnt();
+    const stmts = [];
+    for (let i = 0; i < list.length; i += 50) {
+      const c = list.slice(i, i + 50);
+      const ph = c.map((_, j) => `?${j + 1}`).join(",");
+      stmts.push(env.DB.prepare(`DELETE FROM activations WHERE key IN (${ph}) AND key IN (SELECT key FROM keys WHERE claimed_by IS NULL)`).bind(...c));
+      stmts.push(env.DB.prepare(`DELETE FROM keys WHERE claimed_by IS NULL AND key IN (${ph})`).bind(...c));
+    }
+    if (stmts.length) await env.DB.batch(stmts);
+    return json({ ok: true, deleted: before - (await cnt()) });
+  }
+
+  if (path === "pool/update") {
+    // Изменить срок у ключей пула (только не активированных). days: число, 0 = навсегда, пусто = как у автоключей
+    let days = null;
+    if (body.days !== undefined && body.days !== null && body.days !== "") {
+      days = parseDays(body.days);
+      if (days == null) return json({ ok: false, error: "bad_days" }, 400);
+    }
+    const list = await poolTargets(env, body);
+    const stmts = [];
+    for (let i = 0; i < list.length; i += 50) {
+      const c = list.slice(i, i + 50);
+      const ph = c.map((_, j) => `?${j + 2}`).join(",");
+      stmts.push(env.DB.prepare(`UPDATE keys SET days=?1 WHERE claimed_by IS NULL AND activated_at IS NULL AND key IN (${ph})`).bind(days, ...c));
+    }
+    if (stmts.length) await env.DB.batch(stmts);
+    return json({ ok: true, submitted: list.length });
+  }
+
+  if (path === "pool/generate") {
+    // Создать новые ключи сразу в пул (они ждут клиентов, выдаются первыми)
+    const count = Math.min(Math.max(parseInt(body.count, 10) || 1, 1), 500);
+    let days = null;
+    if (body.days !== undefined && body.days !== null && body.days !== "") {
+      days = parseDays(body.days);
+      if (days == null) return json({ ok: false, error: "bad_days" }, 400);
+    }
+    const note = String(body.note || "").slice(0, 200) || null;
+    const made = new Set();
+    while (made.size < count) made.add(genKey());
+    const list = [...made];
+    const stmts = [];
+    for (let i = 0; i < list.length; i += 20) {
+      const c = list.slice(i, i + 20);
+      const ph = c.map((_, j) => `(?${j * 4 + 1},?${j * 4 + 2},?${j * 4 + 3},?${j * 4 + 4})`).join(",");
+      stmts.push(env.DB.prepare(`INSERT OR IGNORE INTO keys(key,added_at,note,days) VALUES ${ph}`).bind(...c.flatMap((k) => [k, now(), note, days])));
+    }
+    await env.DB.batch(stmts);
+    return json({ ok: true, keys: list });
+  }
+
+  if (path === "keys/extend") {
+    // Срок выданного ключа. Не активирован: заменяет срок (0 = навсегда). Активирован: добавляет дни к текущему сроку (0 = сделать бессрочным)
+    const key = String(body.key || "");
+    const d = parseDays(body.days);
+    if (d == null) return json({ ok: false, error: "bad_days" }, 400);
+    const row = await env.DB.prepare("SELECT * FROM keys WHERE key=?1").bind(key).first();
+    if (!row) return json({ ok: false, error: "not_found" }, 404);
+    if (row.activated_at == null) {
+      await env.DB.prepare("UPDATE keys SET days=?1 WHERE key=?2").bind(d, key).run();
+      return json({ ok: true, mode: "plan", days: d });
+    }
+    if (d === 0) {
+      await env.DB.prepare("UPDATE keys SET until=0 WHERE key=?1").bind(key).run();
+      return json({ ok: true, mode: "life" });
+    }
+    if (!row.until) return json({ ok: false, error: "already_lifetime" });
+    const until = Math.max(Date.now(), row.until) + d * DAY_MS;
+    await env.DB.prepare("UPDATE keys SET until=?1 WHERE key=?2").bind(until, key).run();
+    return json({ ok: true, mode: "add", until });
+  }
+
+  if (path === "keys/note") {
+    const key = String(body.key || "");
+    const r = await env.DB.prepare("UPDATE keys SET note=?1 WHERE key=?2 RETURNING key").bind(String(body.note || "").slice(0, 200), key).all();
+    return json({ ok: !!(r.results && r.results[0]) });
   }
 
   return json({ error: "not_found" }, 404);
