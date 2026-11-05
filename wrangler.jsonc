@@ -10,5 +10,5 @@
   "d1_databases": [
     { "binding": "DB", "database_name": "staken", "database_id": "7a22fedc-6a34-409d-afd8-515f2be7be50" }
   ],
-     "vars": { "MIN_DEPOSIT": "100", "MAX_DEVICES": "2", "AUTO_KEY_DAYS": "0", "LICENSE_TTL_HOURS": "72" }
+     "vars": { "MIN_DEPOSIT": "100", "MAX_DEVICES": "1", "AUTO_KEY_DAYS": "0", "LICENSE_TTL_HOURS": "2" }
 }
