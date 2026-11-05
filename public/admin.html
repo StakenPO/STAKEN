@@ -15,6 +15,8 @@ button.sec{background:transparent;color:var(--g);border:1px solid var(--g)}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>input{flex:1;min-width:200px}
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;word-break:break-all}
 th{color:var(--mut);font-weight:600}.scroll{overflow-x:auto}
+select{background:#0B1110;border:1px solid #2A3B35;border-radius:10px;color:var(--txt);padding:10px 12px;font:inherit}
+.row>#cnt{min-width:80px;flex:0 0 90px}td button{padding:5px 9px;font-size:12px;margin:2px}td code{word-break:keep-all}
 .ok{color:var(--g)}.bad{color:var(--red)}.warn{color:var(--gold)}.msg{margin-top:10px;min-height:20px}
 code{font-family:ui-monospace,Menlo,Consolas,monospace}
 </style></head><body><div class="wrap">
@@ -23,11 +25,11 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace}
 <div id="app" style="display:none">
   <div class="card"><h2>Сводка</h2><div class="grid" id="stats"></div><div class="row" style="margin-top:12px"><button class="sec" id="refresh">Обновить</button></div></div>
   <div class="card"><h2>Добавить ключи в пул</h2>
-    <p style="color:var(--mut);margin-top:0">Вставьте ключи из вашего генератора, по одному в строке. Они будут выдаваться автоматически после депозита, а также вручную ниже.</p>
+    <p style="color:var(--mut);margin-top:0">Необязательно: сервер сам создаёт новые ключи, когда пул пуст. Здесь можно добавить готовые ключи (по одному в строке), они выдаются в первую очередь.</p>
     <textarea id="keys" placeholder="ключ1&#10;ключ2&#10;ключ3"></textarea>
-    <div class="row" style="margin-top:10px"><button id="addk">Добавить в пул</button></div><div class="msg" id="m1"></div></div>
-  <div class="card"><h2>Выдать ключ вручную (себе, тестеру, покупателю за $67)</h2>
-    <div class="row"><input id="note" placeholder="Кому/пометка, например: я, тест, @username"><button id="take">Взять ключ из пула</button></div>
+    <div class="row" style="margin-top:10px"><select id="daysA"><option value="">срок как у автоключей</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="0">навсегда</option></select><button id="addk">Добавить в пул</button></div><div class="msg" id="m1"></div></div>
+  <div class="card"><h2>Создать ключи (себе, тестеру, покупателю за $67)</h2>
+    <div class="row"><input id="note" placeholder="Кому/пометка, например: я, тест, @username"><input id="cnt" type="number" min="1" max="200" value="1" style="max-width:90px"><select id="daysG"><option value="">срок как у автоключей</option><option value="7">7 дней</option><option value="30">30 дней</option><option value="0">навсегда</option></select><button id="take">Создать</button></div>
     <div class="msg" id="m2"></div></div>
   <div class="card"><h2>Выдать ключ по click_id (если постбэк задержался)</h2>
     <div class="row"><input id="cid" placeholder="click_id (32 символа, берётся из таблицы ниже)"><button id="grant">Выдать</button></div>
@@ -51,16 +53,29 @@ async function load(){
   if(d._s===401){$("m0").innerHTML='<span class="bad">Неверный токен</span>';$("app").style.display="none";return}
   if(d._s!==200){$("m0").innerHTML='<span class="bad">Ошибка: '+esc(d.detail||d.error||d._s)+'</span>';return}
   $("m0").innerHTML='<span class="ok">Вход выполнен</span>';$("app").style.display="";
-  var s=d.stats;$("stats").innerHTML=[["Свободных ключей",s.free],["Выдано ключей",s.used],["Регистраций",s.regs],["Депозитов (FTD)",s.ftds],["Ключей по клику",s.issued],["Мин. депозит","$"+d.min]]
-    .map(function(x){return'<div class="stat"><b class="'+(x[0]==="Свободных ключей"&&x[1]<5?"bad":"")+'">'+esc(x[1])+'</b><span>'+x[0]+'</span></div>'}).join("");
+  var s=d.stats;$("stats").innerHTML=[["Ключей в пуле",s.free],["Выдано ключей",s.used],["Регистраций",s.regs],["Депозитов (FTD)",s.ftds],["Ключей по клику",s.issued],["Активаций (устройств)",s.activations],["Макс. устройств на ключ",d.maxDevices],["Мин. депозит","$"+d.min]]
+    .map(function(x){return'<div class="stat"><b>'+esc(x[1])+'</b><span>'+x[0]+'</span></div>'}).join("");
+  $("m0").innerHTML+=d.signing?"":' <span class="bad">Не задан секрет LICENSE_PRIVATE_JWK: расширение не сможет активировать ключи (см. инструкцию, шаг 3.4)</span>';
+  window.AUTO=d.autoDays;window.MAXD=d.maxDevices;
   table("tc",["click_id","Регистрация","Депозит","Сумма","trader_id (от PO)","ID (ввёл клиент)","Ключ"],d.clicks.map(function(c){return["<code>"+esc(c.click_id)+"</code>",dt(c.reg_at),dt(c.ftd_at),c.dep?"$"+c.dep:"—",esc(c.trader_id||"—"),esc(c.uid||"—"),c.key?'<span class="ok">'+esc(c.key)+"</span>":"—"]}));
-  table("tk",["Ключ","Кому","Когда"],d.keys.map(function(k){return[esc(k.key),esc(k.note==="auto"?"авто · "+k.claimed_by.slice(0,8)+"…":k.note),dt(k.claimed_at)]}));
+  table("tk",["Ключ","Кому","Когда","Срок","Устройств","Статус",""],d.keys.map(function(k){
+    var plan=k.days==null?window.AUTO:k.days;
+    var term=k.activated_at?(k.until?"до "+new Date(k.until).toLocaleString("ru-RU"):"навсегда"):"не активирован ("+(plan?plan+" дн.":"навсегда")+")";
+    var st=k.revoked?'<span class="bad">заблокирован</span>':(k.activated_at?'<span class="ok">активен</span>':"—");
+    var kk=esc(k.key);
+    return["<code>"+kk+"</code>",esc(k.note==="auto"?"авто · "+k.claimed_by.slice(0,8)+"…":k.note),dt(k.claimed_at),term,k.devs+" / "+window.MAXD,st,
+      '<button class="sec" data-a="reset" data-k="'+kk+'">Сбросить устройства</button> <button class="sec" data-a="rev" data-r="'+(k.revoked?0:1)+'" data-k="'+kk+'">'+(k.revoked?"Разблокировать":"Заблокировать")+"</button>"]}));
   table("te",["Время","Событие","click_id","trader_id","Сумма","Результат"],d.events.map(function(e){return[dt(e.ts),esc(e.event),"<code>"+esc(e.click_id)+"</code>",esc(e.trader_id||"—"),e.dep||"—",esc(e.result)]}));
 }
 $("login").onclick=function(){T=$("tok").value.trim();sessionStorage.setItem("adm",T);load()};
 $("refresh").onclick=load;
-$("addk").onclick=async function(){var l=$("keys").value.split(/\r?\n/);var d=await api("keys/add",{keys:l});$("m1").innerHTML=d.ok?'<span class="ok">Отправлено: '+d.submitted+' (дубликаты пропущены)</span>':'<span class="bad">Ошибка</span>';if(d.ok){$("keys").value="";load()}};
-$("take").onclick=async function(){var d=await api("keys/take",{note:$("note").value||"manual"});$("m2").innerHTML=d.ok?'Ключ: <b class="ok" style="user-select:all">'+esc(d.key)+"</b>":'<span class="bad">Пул пуст, добавьте ключи</span>';load()};
+function dv(id){var v=$(id).value;return v===""?undefined:+v}
+$("addk").onclick=async function(){var l=$("keys").value.split(/\r?\n/);var d=await api("keys/add",{keys:l,days:dv("daysA")});$("m1").innerHTML=d.ok?'<span class="ok">Отправлено: '+d.submitted+' (дубликаты пропущены)</span>':'<span class="bad">Ошибка</span>';if(d.ok){$("keys").value="";load()}};
+$("take").onclick=async function(){var d=await api("keys/generate",{note:$("note").value||"manual",count:+$("cnt").value||1,days:dv("daysG")});$("m2").innerHTML=d.ok?'Ключи: <b class="ok" style="user-select:all;white-space:pre-line">'+d.keys.map(esc).join("\n")+"</b>":'<span class="bad">Ошибка: '+esc(d.error||d._s)+"</span>";load()};
+$("tk").onclick=async function(e){var b=e.target.closest("button[data-a]");if(!b)return;var k=b.getAttribute("data-k");
+  if(b.getAttribute("data-a")==="reset"){if(!confirm("Сбросить устройства этого ключа? Клиент сможет активировать его заново."))return;await api("keys/reset",{key:k})}
+  else{var r=b.getAttribute("data-r")==="1";if(r&&!confirm("Заблокировать ключ? Расширение клиента отключится при ближайшей проверке."))return;await api("keys/revoke",{key:k,revoked:r})}
+  load()};
 $("grant").onclick=async function(){var d=await api("keys/grant",{click_id:$("cid").value});$("m3").innerHTML=d.ok?'Ключ: <b class="ok" style="user-select:all">'+esc(d.key)+"</b>"+(d.already?" (уже был выдан)":""):'<span class="bad">Ошибка: '+esc(d.error)+"</span>";load()};
 if(T)load();
 </script></body></html>
